@@ -67,6 +67,7 @@ flowchart TD
 | `scripts/copy_secrets_for_cloud.py` | macOS helper CLI to format `.env` as valid Streamlit Cloud TOML and copy to clipboard |
 | `docs/USER_GUIDE.md` | Commercial Operations Playbook (**English**) |
 | `docs/USER_GUIDE.id.md` | Panduan Operasional Komersial (**Bahasa Indonesia**) |
+| `docs/GOOGLE_FLOW_PROMPT_PLAYBOOK.md` | Veo 3.1 / Google Flow 5-Law Anti-Hallucination Prompt Reference |
 | `src/schemas.py` | Pydantic v2 models (`TalentSavedProfile`, `ProductKnowledgeBrief`, `FlowSetup`, `FlowScene`, `BlueprintResponse`) |
 | `src/prompts.py` | Commercial Director system prompt, `@me` tag splitter, and Offline Demo blueprint builder |
 | `src/blueprint_engine.py` | Deterministic 1:1 Geometry Lock, anti-deformation sanitizer, standalone `@me` binder, and CTA enforcer |

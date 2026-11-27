@@ -124,22 +124,32 @@ def test_anti_hallucination_product_leg_lock_and_indonesian_avatar_lock():
         profile=avatar_prof,
     )
 
+    assert enforced_twice == enforced
+
     for s in enforced_twice.scenes:
         p = s.flow_prompt_en
-        # Exact product geometry & anti-redesign leg lock present in EVERY scene
-        assert "STRICT PRODUCT LOCK" in p
+        low = p.lower()
+        # 1. Zero meta-brackets and zero quotation marks
+        assert "[" not in p and "]" not in p
+        assert '"' not in p
+        # 2. Zero Veo Pink-Elephant negative triggers
+        for forbidden in ("do not", "don't", "caucasian", "western", "european", "background music", "spoken dialogue"):
+            assert forbidden not in low
+        # 3. Exact product geometry & positive static lock in EVERY scene
         assert "tan-painted cross-brace tubular legs" in p
-        assert "do NOT redesign legs" in p
-        # Folding / unfolding deformations are sanitized out of scene actions
-        assert "unfolding the beige" not in p.lower()
-        assert "next to the folded chair" not in p.lower()
-        # Google Flow @me Avatar + Native Indonesian lock (standalone @me, never (@me))
-        assert "INDONESIAN AVATAR LOCK" in p
+        assert "locked static geometry" in low
+        # 4. Folding / unfolding deformations are sanitized out
+        assert "unfolding" not in low
+        assert "folded" not in low
+        # 5. Google Flow @me Avatar + Positive Native Indonesian identity
         assert " @me " in p
         assert "(@me)" not in p
-        assert "authentic native Indonesian man" in p
-        assert "strictly NO Western, NO Caucasian" in p
-        assert "caucasian man" not in p.lower()
+        assert "authentic native indonesian man" in low
+        # 6. Scene Builder kinematics & Positive Audio Cue
+        assert "quiet natural ambient soundscape" in low
+        assert "silent presenter" in low
+        if s.flow_action == "Extend":
+            assert p.startswith("Seamless continuation from the previous frame,")
 
     assert "@me stands beside" in enforced_twice.scenes[1].flow_prompt_en
     assert "@me points at" in enforced_twice.scenes[1].flow_prompt_en
@@ -169,7 +179,7 @@ def test_enforces_visual_bible_specific_flow_actions_and_platform_terms():
     raw = build_offline_demo_blueprint(TalentSavedProfile(), scene_count=5)
     raw.scenes[0].flow_action = "WrongAction"
     raw.scenes[1].flow_action = "Extend / Jump to"
-    raw.scenes[1].flow_prompt_en = "Continuous push-in on hand holding bottle."
+    raw.scenes[1].flow_prompt_en = '[Visual Bible: Studio] Continuous push-in on "bottle" with no background music.'
     raw.scenes[2].flow_action = "Extend / Jump to"
     raw.scenes[2].flow_prompt_en = "Macro close-up droplet dispensing onto hand."
     raw.scenes[4].vo_script_id = "Mumpung promo masih ada, langsung klik Keranjang Kuning sebelum kehabisan stok!"
@@ -181,13 +191,18 @@ def test_enforces_visual_bible_specific_flow_actions_and_platform_terms():
     )
     assert enforced.scenes[0].flow_action == "New Scene"
     assert enforced.scenes[1].flow_action == "Extend"
+    assert enforced.scenes[1].flow_prompt_en.startswith("Seamless continuation from the previous frame,")
     assert enforced.scenes[2].flow_action == "Jump to"
     assert "Keranjang Oranye" in enforced.scenes[4].vo_script_id
 
-    bible_prefix = enforced.flow_setup.locked_visual_bible_en[:40]
     for s in enforced.scenes:
-        assert bible_prefix in s.flow_prompt_en
-        assert "no background music" in s.flow_prompt_en.lower()
+        low = s.flow_prompt_en.lower()
+        assert "9:16" in low
+        assert "[" not in s.flow_prompt_en and "]" not in s.flow_prompt_en
+        assert '"' not in s.flow_prompt_en
+        assert "background music" not in low
+        assert "quiet natural ambient soundscape" in low
+        assert "silent presenter" in low
         wc = count_words(s.vo_script_id)
         assert 10 <= wc <= 18
 

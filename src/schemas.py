@@ -184,23 +184,23 @@ class FlowSetup(BaseModel):
     )
     exact_product_geometry_lock_en: str = Field(
         default=(
-            "Exact 1:1 physical geometry, silhouette, frame/base/bottle proportions, "
-            "surface colors, joint details, and printed logo strictly matching the uploaded Product Ingredient image without any invented or altered parts."
+            "Exact 1:1 physical geometry, silhouette, frame, base, and bottle proportions, "
+            "locked static leg and structural silhouette, surface colors, joint details, "
+            "and original front typography matching the uploaded Product Ingredient photo"
         ),
         min_length=1,
         description=(
-            "Deskripsi forensik Bahasa Inggris yang merinci BENTUK FISIK PERSIS yang terlihat nyata di foto produk "
-            "(struktur kaki/rangka/botol/kemasan, warna tiap komponen/tiang/kaki, sambungan, proporsi, posisi & teks logo) "
-            "serta larangan keras mengubah bentuk kaki/struktur atau mengarang bagian yang tidak ada di foto."
+            "Deskripsi forensik Bahasa Inggris POSITIF (tanpa kata larangan 'do not'/'no' dan tanpa tanda kutip) "
+            "tentang BENTUK FISIK PERSIS yang terlihat nyata di foto produk (struktur kaki/rangka/botol/kemasan, "
+            "warna tiap tiang/kaki/komponen, sambungan, proporsi, posisi & isi logo asli)."
         ),
     )
     locked_visual_bible_en: str = Field(
         ...,
         min_length=1,
         description=(
-            "Satu paragraf Bahasa Inggris yang mengunci 1 lokasi konsisten, pencahayaan, color grading, "
-            "lensa kamera, identitas Avatar Indonesia dari Character Ingredient (jika ada talent), "
-            "dan kemiripan 100% geometri fisik produk terhadap Product Ingredient."
+            "Satu paragraf Bahasa Inggris positif yang mengunci 1 lokasi konsisten, pencahayaan, color grading, "
+            "lensa kamera, identitas Avatar Indonesia @me (jika ada talent), dan geometri fisik produk yang konsisten 1:1."
         ),
     )
 
@@ -235,9 +235,11 @@ class FlowScene(BaseModel):
         ...,
         min_length=1,
         description=(
-            "Prompt visual lengkap dalam Bahasa Inggris siap copy-paste ke Google Flow. "
-            "WAJIB memuat elemen Locked Visual Bible, detail fisik/material spesifik produk, pergerakan kamera, "
-            "produk tetap identik dengan Ingredients (JANGAN pernah digambarkan rusak/gagal), serta arahan foley tanpa musik/dialog."
+            "Prompt visual Veo 3.1 / Google Flow Bahasa Inggris linear (~80-135 kata), TANPA tanda kurung siku `[...]`, "
+            "TANPA tanda kutip ganda, dan HANYA memakai kalimat afirmatif positif (tanpa kata 'do not', 'no', 'Western', 'Caucasian', 'broken', 'fold'). "
+            "Susun 5 bagian: (1) Cinematography & 9:16 lens (untuk Extend wajib diawali 'Seamless continuation from the previous frame,'), "
+            "(2) Subject '@me' Indonesia / tangan Indonesia, (3) Geometri fisik produk 1:1 + kontak fisik mantap pada permukaan, "
+            "(4) Satu aksi mikro 5 detik, (5) Lokasi & pencahayaan terkunci + 'Audio: quiet natural ambient soundscape and crisp realistic product foley only, silent presenter.'"
         ),
     )
     vo_script_id: str = Field(

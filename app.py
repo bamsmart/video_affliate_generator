@@ -626,10 +626,11 @@ if record_obj is not None and comp_obj is not None:
             ":blue-badge[:material/face: Kunci Avatar Indonesia]"
         )
         st.info(
-            "Agar Google Flow **tidak mengarang bentuk kaki/bodi produk baru** dan **tetap memakai wajah Indonesia dari Avatar `@me` Anda**:\n"
-            "1. Pastikan foto produk yang dimasukkan ke **Ingredients** menampilkan **ujung kaki/bagian bawah produk secara utuh** (tidak terpotong).\n"
-            "2. Setiap prompt sudah otomatis menggunakan **`@me`** untuk memanggil Avatar wajah Anda di Google Flow. Pastikan Foto Produk Bersih juga terpasang di **Ingredients / Asset** saat klik **New Scene** maupun **Jump to**.",
-            title="Kunci wajib di Google Flow",
+            "Standar **Google Flow / Veo 3.1 Anti-Halu**:\n"
+            "1. **Foto Produk Utuh:** Pastikan foto di **Ingredients** menampilkan **ujung kaki/bagian bawah produk secara penuh** (tidak terpotong).\n"
+            "2. **Avatar `@me` & Ingredient Aktif:** Setiap prompt otomatis memanggil **`@me`** dengan deskripsi positif Nusantara dan mengunci geometri produk 1:1. Pastikan Foto Produk Bersih tetap aktif di **New Scene** maupun **Jump to**.\n"
+            "3. **Hemat Kredit:** Uji alur & kaki produk dulu di mode **Veo Fast / Lite** sebelum render final dengan **Veo Quality**.",
+            title="Panduan Google Flow Video Consultant",
             icon=":material/verified:",
         )
         for item in fs.ingredients_checklist:

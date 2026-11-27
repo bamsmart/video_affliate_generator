@@ -22,35 +22,36 @@ from src.schemas import (
 )
 
 COMMERCIAL_DIRECTOR_SYSTEM_PROMPT = """\
-Bertindaklah sebagai Senior Commercial Video Director, Product Specialist, dan AI Prompt Engineer spesialis konten Shopee Video & TikTok Affiliate Indonesia untuk Google Flow dan CapCut.
+Bertindaklah sebagai Google Flow / Veo 3.1 Senior Video Generator Consultant, Commercial Director, dan Product Specialist konten Shopee Video & TikTok Affiliate Indonesia.
 
-MISI UTAMAMU ADALAH "ADDED VALUE & DEEP PRODUCT KNOWLEDGE":
-90% affiliator lain gagal konversi karena cuma membaca judul barang secara dangkal ("barang ini bagus dan murah, yuk beli").
-Video kita WAJIB menang bersaing dengan memberikan **nilai tambah edukatif yang tajam, spesifik, dan menjawab keraguan pembeli**:
-- Bedah detail material, bahan aktif/komposisi, ketebalan/kapasitas/mekanisme kerja nyata, tips pakai pro, dan *Objection Killer* (menjawab keraguan terbesar calon pembeli sebelum checkout).
-- Jangan mengarang angka palsu yang tidak masuk akal: gunakan fakta dari gambar/screenshot, data website/spesifikasi toko yang dilampirkan, serta pengetahuan teknis standar kategori produk secara akurat & jujur.
+MISI UTAMAMU ADALAH "ZERO HALLUCINATION + ADDED VALUE":
+90% video AI affiliate gagal karena prompt menghasilkan kaki/bentuk produk yang berubah-ubah atau wajah berubah menjadi orang Barat, serta narasi hanya membaca judul produk.
 
-ATURAN TEKNIS WAJIB:
-1. VISUAL BIBLE KONTEKSTUAL: Buat SATU definisi konsisten untuk lokasi (sesuaikan dengan kategori produk jika mode lokasi otomatis — misal taman/teras sore untuk kursi camping outdoor, dapur bersih untuk alat masak, meja rias terang untuk skincare), pencahayaan, color grading, gaya kamera, dan identitas subjek. SUNTIKKAN elemen visual bible ini ke dalam SETIAP prompt scene.
-2. CONTINUITY BRIDGING & TOMBOL GOOGLE FLOW SPESIFIK:
-   - Scene 1 WAJIB memakai `flow_action`: "New Scene".
-   - Scene 2 dan seterusnya pilih secara spesifik antara:
-     * "Extend": kamera melanjutkan gerakan langsung dari frame terakhir klip sebelumnya tanpa cut sudut kamera.
-     * "Jump to": berpindah sudut kamera ke detail produk yang MEMANG TERLIHAT NYATA di foto produk (dengan tetap memasang Ingredients Produk + Avatar yang sama).
-3. FORENSIC 1:1 PRODUCT GEOMETRY LOCK (ANTI-HALU BENTUK PRODUK & KAKI/RANGKA):
-   - Amati foto produk secara forensik piksel demi piksel! Isi `flow_setup.exact_product_geometry_lock_en` dengan rincian geometri fisik PERSIS yang terlihat nyata di foto: struktur & jumlah kaki/tiang/rangka/botol, arah silang pipa, warna cat tiang/kaki, warna karet sepatu kaki/sambungan, bentuk lekukan bodi/kain, serta posisi & teks logo asli.
-   - DILARANG MENGARANG BAGIAN BARU yang tidak terlihat di foto (contoh: jangan mengarang busa kepala, kantong samping, tali, atau menyebut kaki besi silver jika di foto kakinya berwarna cokelat/tan!). Jika deskripsi teks toko menyebut bonus/aksesori yang tidak tampak di foto, cukup sebutkan di `vo_script_id` — JANGAN divisualisasikan di `flow_prompt_en`!
-   - DILARANG KERAS AKSI DEFORMASI MEKANIS (`NO FOLDING / NO UNFOLDING / NO ASSEMBLING / NO MORPHING`): JANGAN PERNAH menyuruh Google Flow melipat (`folding`), membuka lipatan (`unfolding`), membongkar, merakit, atau memperlihatkan produk dalam keadaan terlipat! Produk harus selalu tampil UTUH dalam bentuk terbukanya persis seperti foto Ingredients (gunakan pergerakan kamera halus, tangan menyentuh bahan, duduk tenang di kursi yang sudah terbuka, atau menunjuk produk).
-   - DILARANG KERAS memvisualisasikan produk yang sedang dipromosikan dalam keadaan rusak, goyang, patah, bocor, robek, atau cacat di scene mana pun!
-4. KUNCI WAJAH AVATAR GOOGLE FLOW (`@me`) & KARAKTER ASLI INDONESIA (ANTI-WAJAH BARAT / BULE):
-   - Di Google Flow, avatar wajah pengguna dipanggil langsung lewat token **`@me`** di dalam prompt (*"Use your avatar by typing @me in your prompt"*).
-   - Jika mode subjek menggunakan Avatar Google Flow, WAJIB menulis token berdiri sendiri **`@me`** (dengan spasi di kiri/kanannya, JANGAN dibungkus tanda kurung `(@me)`) secara langsung sebagai subjek yang beraksi di **SETIAP scene** `flow_prompt_en` (contoh: `@me stands beside the product`, `@me sits comfortably on the chair`, `@me points down toward the shopping link`). Jangan mengganti `@me` dengan istilah generik seperti `"the creator"` atau `"a man"`.
-   - Tegaskan identitas wajah: **exact 1:1 face and identity of @me — authentic native Indonesian person, Southeast Asian Nusantara facial features, natural warm Indonesian sawo-matang skin tone, dark black hair, dark brown eyes — strictly NO Caucasian, NO Western, NO European facial features**.
-5. BAHASA PROMPT FLOW: Semua `flow_prompt_en` WAJIB dalam Bahasa Inggris sinematis presisi tinggi dan diakhiri kalimat: "Audio: subtle realistic room ambience and natural product foley only, no background music, no spoken dialogue."
-6. MATEMATIKA VO BAHASA INDONESIA BERNILAI TAMBAH: Semua field berakhiran `_id` berarti KALIMAT BAHASA INDONESIA NATURAL (BUKAN kode nomor ID!). Kunci panjang `vo_script_id` ketat di **12-16 kata per scene** (untuk klip 5 detik). DILARANG menulis kalimat basa-basi kosong — setiap scene wajib memuat fakta spek/material/cara kerja/jawaban keraguan pembeli! Hindari klaim medis absolut ('menyembuhkan', 'mengobati', '100% ampuh', 'hilang permanen'), harga palsu ('termurah se-Indonesia'), atau ajakan transaksi luar aplikasi ('beli di WA').
-7. PRODUCT KNOWLEDGE BRIEF & PINNED COMMENT: Isi lengkap objek `product_knowledge`, termasuk `pinned_comment_faq_id` (komentar sematan siap copy-paste yang merangkum spek penting & jawaban pertanyaan umum pembeli).
-8. TERMINOLOGI PLATFORM: Untuk Shopee gunakan istilah "Keranjang Oranye" atau "Tautan Produk di bawah" (jangan sebut Keranjang Kuning di naskah Shopee). Semua hashtag bebas spasi internal (`#KursiLipat`).
-9. OUTPUT FORMAT: Kembalikan HANYA dalam format JSON valid sesuai skema yang ditentukan tanpa teks tambahan di luar JSON.\
+5 HUKUM EMAS PROMPT GOOGLE FLOW (VEO 3.1 ANTI-HALU):
+1. FORMULA SUTRADARA 5-BAGIAN LINEAR (TANPA KURUNG SIKU `[...]` & TANPA TANDA KUTIP `"`):
+   Setiap `flow_prompt_en` (~80-135 kata) WAJIB berupa prosa sinematik Bahasa Inggris mengalir rapi dalam urutan berikut:
+   (a) Cinematography & Camera: `Vertical 9:16` framing, shot type, lens (misal 35mm f/1.8 atau 50mm macro), dan gerak kamera stabil.
+   (b) Subject (`@me` atau tangan Indonesia): Jika memakai Avatar Google Flow, WAJIB tulis token berdiri sendiri **`@me`** (dengan spasi, JANGAN pernah ditulis `(@me)`).
+   (c) Forensic Product Geometry + Grounded Contact Physics: Sebutkan struktur kaki/rangka/botol persis dari `exact_product_geometry_lock_en` dan kontak fisik nyata ke permukaan (`rigidly planted on grassy turf`, `resting solidly on smooth stone`, `fingertips pressing firmly against canvas`) agar objek tidak melayang atau berubah bentuk.
+   (d) Single Atomic Micro-Beat: Hanya **1 gerakan fisik halus** per klip 5 detik (jangan menumpuk beberapa adegan sekaligus).
+   (e) Locked Environment, Lighting & Positive Audio:akhiri dengan: `Audio: quiet natural ambient soundscape and crisp realistic product foley only, silent presenter.`
+2. HUKUM FRASA POSITIF 100% (ANTI "PINK ELEPHANT" NEGATIVE PROMPT):
+   - Di Veo 3.1 / Google Flow, menulis kata negasi seperti `do not`, `don't`, `no Western`, `no Caucasian`, `broken`, `damaged`, `fold`, `deform`, `music`, atau `dialogue` justru memicu AI menggambar benda terlarang tersebut!
+   - Karena itu, isi `flow_prompt_en` HANYA dengan **deskripsi kondisi target positif**:
+     * Untuk wajah Indonesia: tulis deskripsi positif seperti `authentic native Indonesian Nusantara features, natural warm sawo-matang skin tone, neat dark black hair, dark brown eyes` — JANGAN pernah menyebut kata `Western`, `Caucasian`, `European`, atau `do not`!
+     * Untuk produk kokoh/utuh: tulis `locked static geometry, rigidly fixed structural legs, pristine intact product finish` — JANGAN pernah menulis aksi melipat (`folding`/`unfolding`) dan DILARANG KERAS memvisualisasikan produk yang sedang dipromosikan dalam keadaan rusak, goyang, patah, bocor, robek, atau cacat di scene mana pun!
+3. KINEMATIKA SCENE BUILDER (`New Scene` vs `Extend` vs `Jump to`):
+   - Scene 1 WAJIB `flow_action`: "New Scene" (mengunci perspektif hero agar geometri produk dari Product Ingredient terdeteksi 1:1).
+   - `Extend`: WAJIB mengawali `flow_prompt_en` dengan frasa `Seamless continuation from the previous frame,` dan hanya melanjutkan gerak/kamera pelan dari posisi frame terakhir (dilarang melompat dari macro ke wide pada `Extend`).
+   - `Jump to`: Pindah sudut kamera ke detail material yang MEMANG TERLIHAT NYATA di foto produk sambil menyebut ulang `@me`, geometri produk 1:1, dan lokasi/cahaya identik dari `locked_visual_bible_en`.
+4. LARANGAN MENGARANG KOMPONEN & DEFORMASI:
+   - Amati foto produk piksel demi piksel untuk `exact_product_geometry_lock_en`. Jangan pernah mengarang aksesori/bagian yang tidak tampak di foto (jika disebut di teks toko, cukup bahas di `vo_script_id`).
+   - Jangan pernah menggunakan tanda kutip ganda `"` di dalam `flow_prompt_en` agar Veo tidak memunculkan teks acak di layar.
+5. MATEMATIKA VO BAHASA INDONESIA BERNILAI TAMBAH & KEPATUHAN:
+   - Semua field berakhiran `_id` berarti KALIMAT BAHASA INDONESIA NATURAL (BUKAN kode nomor ID!). Panjang `vo_script_id` ketat **12-16 kata per scene**.
+   - Setiap scene wajib memuat fakta spek/material/cara kerja/Objection Killer nyata. Hindari klaim medis absolut ('menyembuhkan', 'mengobati', '100% ampuh', 'hilang permanen'), harga palsu, atau ajakan transaksi luar aplikasi.
+   - Isi lengkap `product_knowledge` termasuk `pinned_comment_faq_id`. Untuk Shopee gunakan "Keranjang Oranye" / "Tautan Produk di bawah". Semua hashtag bebas spasi internal (`#KursiLipat`).
+   - Kembalikan HANYA JSON valid sesuai skema tanpa teks luar JSON.\
 """
 
 
@@ -82,28 +83,28 @@ def _presence_instruction(profile: TalentSavedProfile) -> str:
     extra = f" (outfit konsisten: {profile.visual_notes.strip()})" if profile.visual_notes.strip() else ""
     if profile.talent_presence == TalentPresence.FACELESS_BROLL:
         return (
-            "TANPA WAJAH / FOKUS B-ROLL DETAIL PRODUK & TANGAN INDONESIA: Seluruh klip Google Flow HANYA menampilkan detail produk utuh dan interaksi tangan berkulit hangat sawo matang khas Indonesia "
-            f"tanpa pernah menampilkan wajah manusia{extra}."
+            "TANPA WAJAH / FOKUS B-ROLL DETAIL PRODUK & TANGAN INDONESIA: Seluruh prompt Flow HANYA menampilkan produk utuh dan tangan berkulit sawo matang hangat khas Indonesia "
+            f"(gunakan frasa positif di flow_prompt_en tanpa menulis kata 'no human face'){extra}."
         )
     if profile.talent_presence == TalentPresence.AVATAR_HIJAB_ID:
         return (
-            f"GUNAKAN AVATAR GOOGLE FLOW `{handle}` (WANITA BERHIJAB ASLI INDONESIA): "
-            f"WAJIB tulis token `{handle}` secara langsung (berdiri sendiri dengan spasi, jangan di dalam kurung) sebagai subjek utama di `locked_visual_bible_en` dan di SETIAP `flow_prompt_en` scene! "
-            "Kunci 100% wajah dari Avatar Google Flow tersebut sebagai wanita asli Indonesia berwajah khas Nusantara (Southeast Asian Indonesian), kulit sawo matang/kuning langsat alami Indonesia, berhijab rapi, "
-            f"DILARANG KERAS wajah orang Barat/bule/Kaukasia{trait_info}{extra}."
+            f"GUNAKAN AVATAR GOOGLE FLOW {handle} (WANITA BERHIJAB ASLI INDONESIA): "
+            f"WAJIB tulis token berdiri sendiri {handle} (dengan spasi, bukan dalam kurung) sebagai pelaku aksi di `locked_visual_bible_en` dan SETIAP `flow_prompt_en`. "
+            "Di `flow_prompt_en`, tegaskan secara POSITIF: authentic native Indonesian Nusantara female creator wearing a neat hijab, warm Indonesian skin tone, dark brown eyes "
+            f"(jangan tulis kata 'Western'/'Caucasian'/'do not' di dalam prompt){trait_info}{extra}."
         )
     if profile.talent_presence == TalentPresence.AVATAR_MALE_ID:
         return (
-            f"GUNAKAN AVATAR GOOGLE FLOW `{handle}` (PRIA ASLI INDONESIA): "
-            f"WAJIB tulis token `{handle}` secara langsung (berdiri sendiri dengan spasi, jangan di dalam kurung) sebagai subjek utama di `locked_visual_bible_en` dan di SETIAP `flow_prompt_en` scene! "
-            "Kunci 100% wajah dari Avatar Google Flow tersebut sebagai pria asli Indonesia berwajah khas Nusantara (Southeast Asian Indonesian), kulit sawo matang alami Indonesia, rambut hitam rapi, mata cokelat gelap, "
-            f"DILARANG KERAS wajah orang Barat/bule/Kaukasia{trait_info}{extra}."
+            f"GUNAKAN AVATAR GOOGLE FLOW {handle} (PRIA ASLI INDONESIA): "
+            f"WAJIB tulis token berdiri sendiri {handle} (dengan spasi, bukan dalam kurung) sebagai pelaku aksi di `locked_visual_bible_en` dan SETIAP `flow_prompt_en`. "
+            "Di `flow_prompt_en`, tegaskan secara POSITIF: authentic native Indonesian Nusantara male creator, warm sawo-matang skin tone, neat short black hair, dark brown eyes "
+            f"(jangan tulis kata 'Western'/'Caucasian'/'do not' di dalam prompt){trait_info}{extra}."
         )
     return (
-        f"GUNAKAN AVATAR GOOGLE FLOW `{handle}` (WANITA ASLI INDONESIA): "
-        f"WAJIB tulis token `{handle}` secara langsung (berdiri sendiri dengan spasi, jangan di dalam kurung) sebagai subjek utama di `locked_visual_bible_en` dan di SETIAP `flow_prompt_en` scene! "
-        "Kunci 100% wajah dari Avatar Google Flow tersebut sebagai wanita asli Indonesia berwajah khas Nusantara (Southeast Asian Indonesian), kulit sawo matang/kuning langsat alami Indonesia, rambut hitam alami, "
-        f"DILARANG KERAS wajah orang Barat/bule/Kaukasia{trait_info}{extra}."
+        f"GUNAKAN AVATAR GOOGLE FLOW {handle} (WANITA ASLI INDONESIA): "
+        f"WAJIB tulis token berdiri sendiri {handle} (dengan spasi, bukan dalam kurung) sebagai pelaku aksi di `locked_visual_bible_en` dan SETIAP `flow_prompt_en`. "
+        "Di `flow_prompt_en`, tegaskan secara POSITIF: authentic native Indonesian Nusantara female creator, warm Indonesian skin tone, dark black hair, dark brown eyes "
+        f"(jangan tulis kata 'Western'/'Caucasian'/'do not' di dalam prompt){trait_info}{extra}."
     )
 
 
@@ -199,9 +200,9 @@ Catatan Tambahan Produk / Promo dari Pengguna:
 {extra_note.strip() or "(ekstrak detail selengkap-lengkapnya dari gambar produk & sumber pengetahuan di bawah)"}
 {knowledge_block}{anti_spam_block}
 Checklist Kualitas, Anti-Halu Produk & Identitas Avatar Indonesia Wajib:
-- Isi `flow_setup.exact_product_geometry_lock_en` dengan deskripsi geometri fisik PERSIS yang terlihat di foto produk (bentuk & warna kaki/rangka/botol, sambungan, kain/permukaan, posisi logo). DILARANG mengarang komponen yang tidak tampak di foto!
-- DILARANG menulis aksi melipat (`folding`), membuka lipatan (`unfolding`), atau merakit di `flow_prompt_en` agar Google Flow tidak mengubah bentuk kaki/struktur produk!
-- Jika memakai Avatar, WAJIB menuliskan tag `@me` (berdiri sendiri dengan spasi, jangan di dalam tanda kurung) sebagai subjek pelaku di setiap `flow_prompt_en` scene, dengan fitur asli orang Indonesia (Nusantara, kulit sawo matang hangat, rambut hitam — BUKAN orang Barat/Caucasian).
+- Isi `flow_setup.exact_product_geometry_lock_en` dengan deskripsi geometri fisik PERSIS yang terlihat di foto produk (struktur & jumlah kaki/rangka/botol, warna material, sambungan, permukaan, posisi & isi logo) memakai kalimat positif tanpa kata kutip ganda `"`.
+- Di `flow_prompt_en`: susun prosa sinematik Bahasa Inggris 5-bagian (~80-135 kata), TANPA kurung siku `[...]`, TANPA tanda kutip `"`, dan TANPA kata negasi (`do not`, `no Western`, `no Caucasian`, `broken`, `damaged`, `fold`, `music`, `dialogue`).
+- Setiap `flow_prompt_en` WAJIB: (1) satu aksi mikro 5 detik + kontak permukaan fisik yang mantap, (2) awali adegan `Extend` dengan `Seamless continuation from the previous frame,`, (3) jika memakai Avatar wajib menulis token berdiri sendiri `@me` disertai deskripsi positif Nusantara Indonesia.
 - Isi `product_knowledge` secara mendalam dan konkret (bedah material/kandungan, tips pakai pro, profil pembeli ideal, jawaban keraguan utama pembeli, pembeda dari kompetitor, dan `pinned_comment_faq_id` siap tempel di kolom komentar).
 - Jumlah item di `scenes` TEPAT {scene_count} scene (1 s.d. {scene_count}).
 - Setiap `vo_script_id` WAJIB **12-16 kata** Bahasa Indonesia natural yang menyebut detail nyata produk (bukan pujian umum kosong!).
@@ -259,8 +260,8 @@ Daftar Hook Lama yang DILARANG Diulang:
 
 Aturan Ketat:
 - `scene_1.scene_number` = 1, `scene_1.role` = "Hook", `scene_1.flow_action` = "New Scene", `scene_1.duration_sec` = 5.
-- Jika memakai Avatar, wajib tulis tag `@me` (berdiri sendiri dengan spasi, bukan di dalam kurung) sebagai subjek pelaku di `scene_1.flow_prompt_en` dengan identitas asli orang Indonesia.
-- Jangan pernah menampilkan produk dalam kondisi rusak/cacat atau aksi melipat/membongkar.
+- Tulis `scene_1.flow_prompt_en` dalam Bahasa Inggris prosa 5-bagian (~80-135 kata), TANPA kurung siku `[...]`, TANPA tanda kutip `"`, dan HANYA kalimat positif (tanpa kata `do not`, `no`, `Western`, `Caucasian`, `fold`, `broken`, `music`).
+- Jika memakai Avatar, wajib tulis token berdiri sendiri `@me` (dengan spasi) sebagai subjek pelaku dengan ciri positif asli Nusantara Indonesia.
 - `scene_1.vo_script_id` WAJIB kalimat Bahasa Indonesia natural **12-16 kata** yang punya nilai tambah informasi (bukan kode ID).
 - `scene_1.on_screen_text_id` maksimal **5 kata**.
 
@@ -329,38 +330,39 @@ def build_offline_demo_blueprint(
     promo_info = custom_note if custom_note else "Harga promo etalase + voucher gratis ongkir"
 
     avatar_handle, avatar_traits = _split_avatar_tag(profile.avatar_flow_tag)
-    traits_clause = f" ({avatar_traits})" if avatar_traits else ""
+    traits_clause = f", {avatar_traits}" if avatar_traits else ""
     if profile.talent_presence == TalentPresence.FACELESS_BROLL:
         subject_desc = (
-            "clean well-groomed warm medium-tan Indonesian hands only "
-            "(strictly faceless product B-roll, no human face in frame)"
+            "clean well-groomed warm medium-tan Indonesian hands only in frame, "
+            "keeping visual focus solely on the pristine bottle and smooth skin"
         )
+        actor_ref = "clean warm medium-tan Indonesian hands"
     elif profile.talent_presence == TalentPresence.AVATAR_HIJAB_ID:
         subject_desc = (
-            f"{avatar_handle}{traits_clause}, keeping the exact 1:1 face and identity of {avatar_handle}, "
-            "an authentic native Indonesian female creator with Nusantara Southeast Asian facial features, "
-            "warm Indonesian skin tone, wearing a neat cream pashmina hijab and casual linen top "
-            "(strictly NO Western or Caucasian features)"
+            f"{avatar_handle}, an authentic native Indonesian female creator with Nusantara Southeast Asian facial features, "
+            f"warm Indonesian skin tone, dark brown eyes, neat cream pashmina hijab, and casual linen top{traits_clause}, "
+            f"preserving the exact 1:1 facial identity of {avatar_handle}"
         )
+        actor_ref = f"{avatar_handle}"
     elif profile.talent_presence == TalentPresence.AVATAR_MALE_ID:
         subject_desc = (
-            f"{avatar_handle}{traits_clause}, keeping the exact 1:1 face and identity of {avatar_handle}, "
-            "an authentic native Indonesian male creator with Nusantara Southeast Asian facial features, "
-            "warm sawo-matang Indonesian skin tone, neat short black hair, wearing a casual olive linen shirt "
-            "(strictly NO Western or Caucasian features)"
+            f"{avatar_handle}, an authentic native Indonesian male creator with Nusantara Southeast Asian facial features, "
+            f"warm sawo-matang Indonesian skin tone, neat short black hair, dark brown eyes, and casual olive linen shirt{traits_clause}, "
+            f"preserving the exact 1:1 facial identity of {avatar_handle}"
         )
+        actor_ref = f"{avatar_handle}"
     else:
         subject_desc = (
-            f"{avatar_handle}{traits_clause}, keeping the exact 1:1 face and identity of {avatar_handle}, "
-            "an authentic native Indonesian female creator with Nusantara Southeast Asian facial features, "
-            "warm Indonesian skin tone, natural dark black hair, wearing a neat cream linen casual shirt "
-            "(strictly NO Western or Caucasian features)"
+            f"{avatar_handle}, an authentic native Indonesian female creator with Nusantara Southeast Asian facial features, "
+            f"warm Indonesian skin tone, natural dark black hair, dark brown eyes, and neat cream linen casual shirt{traits_clause}, "
+            f"preserving the exact 1:1 facial identity of {avatar_handle}"
         )
+        actor_ref = f"{avatar_handle}"
 
     geometry_lock = (
         "Exact cylindrical 30ml frosted matte glass dropper bottle with white rubber bulb, "
-        "silver collar ring, and minimalist black front typography '5% Niacinamide + Ceramide' "
-        "matching the uploaded Product Ingredient image 1:1 without altering bottle proportions, cap shape, or label."
+        "silver collar ring, and clean black front label showing 5% Niacinamide and Ceramide, "
+        "maintaining locked static geometry and original bottle proportions"
     )
     setting_desc = (
         profile.custom_location.strip()
@@ -368,10 +370,11 @@ def build_offline_demo_blueprint(
         else "sunlit minimalist Indonesian room with soft morning window light"
     )
     visual_bible = (
-        f"9:16 vertical commercial video shot on 35mm f/1.8 lens in a {setting_desc}, "
+        f"Vertical 9:16 commercial video shot on 35mm f/1.8 lens in a {setting_desc}, "
         f"clean neutral warm beige-white color grading, featuring {subject_desc}, "
-        f"keeping the exact product bottle geometry, frosted glass texture, and printed label strictly identical to the uploaded Product Ingredient reference."
+        f"with {geometry_lock.lower()}"
     )
+    audio_cue = "Audio: quiet natural ambient soundscape and crisp realistic product foley only, silent presenter."
 
     cta_phrase = (
         "keranjang kuning"
@@ -386,8 +389,9 @@ def build_offline_demo_blueprint(
         duration_sec=5,
         continuity_note=variant["continuity"],
         flow_prompt_en=(
-            f"[Visual Bible: {visual_bible}] {variant['action_en']}. "
-            "Audio: subtle realistic room ambience and natural product foley only, no background music, no spoken dialogue."
+            f"Vertical 9:16 commercial frame, 35mm f/1.8 macro shot. {subject_desc}. "
+            f"{geometry_lock}. {variant['action_en']} inside the {setting_desc}. "
+            f"{audio_cue}"
         ),
         vo_script_id=variant["vo_id"],
         on_screen_text_id=variant["ost_id"],
@@ -403,9 +407,9 @@ def build_offline_demo_blueprint(
                 duration_sec=5,
                 continuity_note=variant["s2_bridge"],
                 flow_prompt_en=(
-                    f"[Visual Bible: {visual_bible}] Continuous smooth camera push-in contrasting humid tropical morning air "
-                    "while holding the pristine intact referenced serum bottle steadily in hand. "
-                    "Audio: subtle realistic room ambience and natural product foley only, no background music, no spoken dialogue."
+                    f"Seamless continuation from the previous frame, vertical 9:16 commercial frame, gentle slow push-in. "
+                    f"{subject_desc}. {geometry_lock}. {actor_ref} holds the pristine referenced bottle steadily against the bright morning air of the {setting_desc}. "
+                    f"{audio_cue}"
                 ),
                 vo_script_id="Dosis terlalu tinggi kadang bikin kulit kaget, sedangkan gel kental bikin gerah seharian.",
                 on_screen_text_id="Takut perih atau lengket?",
@@ -417,9 +421,9 @@ def build_offline_demo_blueprint(
                 duration_sec=5,
                 continuity_note="Pindah ke sudut makro botol kaca frosted 30ml dan pipet kaca higienis.",
                 flow_prompt_en=(
-                    f"[Visual Bible: {visual_bible}] Macro close-up cut highlighting the frosted UV-diffusing glass bottle and precision glass dropper "
-                    "of the exact referenced product resting on sunlit travertine stone. "
-                    "Audio: subtle realistic room ambience and natural product foley only, no background music, no spoken dialogue."
+                    f"Vertical 9:16 commercial frame, 50mm macro close-up shot. {subject_desc}. "
+                    f"{geometry_lock}, resting solidly with firm contact on sunlit travertine stone inside the {setting_desc}. "
+                    f"Soft golden light sweeps gently over the frosted bottle shoulder. {audio_cue}"
                 ),
                 vo_script_id="Di botol kaca tiga puluh mili ini, Niacinamide lima persen dipadukan langsung sama Ceramide.",
                 on_screen_text_id="5% Niacinamide + Ceramide",
@@ -431,9 +435,9 @@ def build_offline_demo_blueprint(
                 duration_sec=5,
                 continuity_note="Cut makro ke pipet yang meneteskan tekstur cair bening di punggung tangan.",
                 flow_prompt_en=(
-                    f"[Visual Bible: {visual_bible}] Extreme macro close-up of two crystal-clear water-light serum drops releasing from the referenced pipette "
-                    "onto clean skin and spreading into a weightless invisible finish. "
-                    "Audio: subtle realistic room ambience and natural product foley only, no background music, no spoken dialogue."
+                    f"Vertical 9:16 commercial frame, extreme macro close-up shot. {subject_desc}. "
+                    f"{geometry_lock}. {actor_ref} releases two crystal-clear water-light drops onto skin inside the {setting_desc}, "
+                    f"absorbing evenly into a fresh satin surface. {audio_cue}"
                 ),
                 vo_script_id="Basisnya cair seenteng air tanpa pewangi tambahan, jadi meresap hitungan detik tanpa residu.",
                 on_screen_text_id="Water-base tanpa lengket",
@@ -445,9 +449,9 @@ def build_offline_demo_blueprint(
                 duration_sec=5,
                 continuity_note="Melanjutkan mulus saat jari menepuk lembut kulit yang sudah meresap siap ditimpa sunscreen.",
                 flow_prompt_en=(
-                    f"[Visual Bible: {visual_bible}] Smooth continuation as fingertips lightly tap the matte-hydrated skin surface "
-                    "showing zero sticky film or pilling while the intact bottle sits cleanly nearby. "
-                    "Audio: subtle realistic room ambience and natural product foley only, no background music, no spoken dialogue."
+                    f"Seamless continuation from the previous frame, vertical 9:16 commercial frame. {subject_desc}. "
+                    f"{geometry_lock} planted solidly on the stone counter inside the {setting_desc}. "
+                    f"Fingertips press gently across the smooth matte-hydrated skin surface. {audio_cue}"
                 ),
                 vo_script_id="Aman ditumpuk sunscreen pagi maupun moisturizer malam tanpa bikin makeup menggumpal sama sekali.",
                 on_screen_text_id="Aman ditumpuk sunscreen!",
@@ -459,9 +463,9 @@ def build_offline_demo_blueprint(
                 duration_sec=5,
                 continuity_note="Kamera bergerak lembut menampilkan kilau lembap sehat dan botol produk utuh.",
                 flow_prompt_en=(
-                    f"[Visual Bible: {visual_bible}] Gentle arc shot around the referenced bottle beside a sunlit mirror, "
-                    "emphasizing clean daily skincare simplicity and healthy hydrated skin sheen. "
-                    "Audio: subtle realistic room ambience and natural product foley only, no background music, no spoken dialogue."
+                    f"Seamless continuation from the previous frame, vertical 9:16 commercial frame, slow smooth arc orbit. {subject_desc}. "
+                    f"{geometry_lock} beside a sunlit mirror inside the {setting_desc}, highlighting radiant healthy skin. "
+                    f"{audio_cue}"
                 ),
                 vo_script_id="Cukup dua sampai tiga tetes rutin buat bantu merawat kulit kusam dan kelembapan.",
                 on_screen_text_id="Hemat 2-3 tetes sehari",
@@ -473,9 +477,9 @@ def build_offline_demo_blueprint(
                 duration_sec=5,
                 continuity_note="Pindah ke hero shot penutup botol berdiri tegak dengan gestur ajakan ke tautan produk bawah.",
                 flow_prompt_en=(
-                    f"[Visual Bible: {visual_bible}] Clean hero closing shot as the exact referenced serum bottle stands upright in crisp focus "
-                    "while a hand gestures gently toward the lower shopping link safe zone. "
-                    "Audio: subtle realistic room ambience and natural product foley only, no background music, no spoken dialogue."
+                    f"Vertical 9:16 commercial frame, clean eye-level hero shot. {subject_desc}. "
+                    f"{geometry_lock} standing upright with firm base contact on the sunlit table inside the {setting_desc}, "
+                    f"as {actor_ref} gestures cleanly toward the lower screen link area. {audio_cue}"
                 ),
                 vo_script_id=f"Detail spek lengkapnya udah aku tulis di komentar, langsung cek {cta_phrase} sekarang ya!",
                 on_screen_text_id="Cek spek & promo bawah!",
@@ -491,9 +495,9 @@ def build_offline_demo_blueprint(
                 duration_sec=5,
                 continuity_note=variant["s2_bridge"],
                 flow_prompt_en=(
-                    f"[Visual Bible: {visual_bible}] Continuous smooth camera push-in contrasting humid tropical morning air "
-                    "before focusing cleanly on the pristine intact referenced serum bottle held steadily in hand. "
-                    "Audio: subtle realistic room ambience and natural product foley only, no background music, no spoken dialogue."
+                    f"Seamless continuation from the previous frame, vertical 9:16 commercial frame, smooth gentle push-in. {subject_desc}. "
+                    f"{geometry_lock}. {actor_ref} holds the pristine referenced bottle steadily in the bright {setting_desc}. "
+                    f"{audio_cue}"
                 ),
                 vo_script_id="Serum yang terlalu kental sering bikin wajah gerah dan sunscreen jadi gampang menggumpal.",
                 on_screen_text_id="Sunscreen sering menggumpal?",
@@ -505,9 +509,9 @@ def build_offline_demo_blueprint(
                 duration_sec=5,
                 continuity_note="Pindah ke sudut close-up makro tangan meneteskan tekstur water-base dari botol kaca 30ml.",
                 flow_prompt_en=(
-                    f"[Visual Bible: {visual_bible}] Macro close-up cut onto the hand holding the exact referenced 30ml frosted bottle, "
-                    "dispensing two clear watery serum drops onto skin and blending smoothly into a weightless finish. "
-                    "Audio: subtle realistic room ambience and natural product foley only, no background music, no spoken dialogue."
+                    f"Vertical 9:16 commercial frame, 50mm macro close-up cut. {subject_desc}. "
+                    f"{geometry_lock}. {actor_ref} dispenses two clear watery drops onto clean skin inside the {setting_desc} "
+                    f"until blended into a weightless finish. {audio_cue}"
                 ),
                 vo_script_id="Formula water-base ini memadukan Niacinamide lima persen dan Ceramide yang meresap hitungan detik.",
                 on_screen_text_id="5% Niacinamide + Ceramide",
@@ -519,9 +523,9 @@ def build_offline_demo_blueprint(
                 duration_sec=5,
                 continuity_note="Melanjutkan mulus dari kulit yang lembap halus siap ditimpa sunscreen tanpa lengket.",
                 flow_prompt_en=(
-                    f"[Visual Bible: {visual_bible}] Smooth continuation showing refreshed matte-hydrated skin sheen "
-                    "while holding the intact referenced bottle steadily in soft morning window light. "
-                    "Audio: subtle realistic room ambience and natural product foley only, no background music, no spoken dialogue."
+                    f"Seamless continuation from the previous frame, vertical 9:16 commercial frame. {subject_desc}. "
+                    f"{geometry_lock} resting firmly in hand inside the sunlit {setting_desc} alongside fresh matte-hydrated skin sheen. "
+                    f"{audio_cue}"
                 ),
                 vo_script_id="Tanpa pewangi menyengat dan aman dilayer sunscreen pagi buat bantu merawat kulit kusam.",
                 on_screen_text_id="Aman dilayer pagi & malam",
@@ -533,9 +537,9 @@ def build_offline_demo_blueprint(
                 duration_sec=5,
                 continuity_note="Pindah ke hero shot produk berdiri rapi di atas meja terang dengan gestur ajakan cek tautan produk bawah.",
                 flow_prompt_en=(
-                    f"[Visual Bible: {visual_bible}] Clean hero closing shot as the exact referenced serum bottle stands upright on the sunlit table "
-                    "in crisp focus while a hand gestures gently toward the lower shopping link safe zone. "
-                    "Audio: subtle realistic room ambience and natural product foley only, no background music, no spoken dialogue."
+                    f"Vertical 9:16 commercial frame, clean hero closing shot. {subject_desc}. "
+                    f"{geometry_lock} planted upright on the sunlit table inside the {setting_desc}, "
+                    f"as {actor_ref} gestures clearly toward the lower link area. {audio_cue}"
                 ),
                 vo_script_id=f"Rangkuman speknya ada di komentar pertama, yuk langsung klik {cta_phrase} mumpung promo!",
                 on_screen_text_id="Cek promo sekarang!",
@@ -551,9 +555,9 @@ def build_offline_demo_blueprint(
                 duration_sec=5,
                 continuity_note=variant["s2_bridge"],
                 flow_prompt_en=(
-                    f"[Visual Bible: {visual_bible}] Macro close-up shot on the referenced bottle held cleanly in hand, "
-                    "dispensing two crystal-clear watery drops onto skin and blending effortlessly to show a non-sticky finish while keeping the label sharp. "
-                    "Audio: subtle realistic room ambience and natural product foley only, no background music, no spoken dialogue."
+                    f"Vertical 9:16 commercial frame, 50mm macro close-up shot. {subject_desc}. "
+                    f"{geometry_lock}. {actor_ref} dispenses two crystal-clear watery drops onto skin inside the {setting_desc} "
+                    f"while holding the front label sharp toward the lens. {audio_cue}"
                 ),
                 vo_script_id="Basis airnya memadukan Niacinamide lima persen dan Ceramide, meresap cepat tanpa mengganggu sunscreen.",
                 on_screen_text_id="5% Niacinamide water-base",
@@ -565,9 +569,9 @@ def build_offline_demo_blueprint(
                 duration_sec=5,
                 continuity_note="Melanjutkan mulus saat tangan meletakkan botol utuh di meja terang dan menunjuk ke arah tautan produk bawah.",
                 flow_prompt_en=(
-                    f"[Visual Bible: {visual_bible}] Smooth pull-back as the exact referenced bottle rests steadily in crisp focus on the sunlit table "
-                    "with a gentle hand gesture pointing downward toward the product link area and clean upper/lower safe zones. "
-                    "Audio: subtle realistic room ambience and natural product foley only, no background music, no spoken dialogue."
+                    f"Seamless continuation from the previous frame, vertical 9:16 commercial frame, smooth pull-back reveal. {subject_desc}. "
+                    f"{geometry_lock} resting squarely on the sunlit table inside the {setting_desc} "
+                    f"as {actor_ref} points gently toward the lower screen area. {audio_cue}"
                 ),
                 vo_script_id=f"Ukuran tiga puluh milinya awet sebulan lebih, langsung cek {cta_phrase} mumpung promo!",
                 on_screen_text_id="Awet 30ml · Cek bawah!",
@@ -658,9 +662,10 @@ def build_offline_demo_regenerated_hook(
     blueprint: BlueprintResponse,
     variation_index: int = 1,
 ) -> RegeneratedHookPayload:
-    """Return a distinct Scene 1 Hook payload for Offline Demo Mode."""
+    """Return a distinct positive-framed Scene 1 Hook payload for Offline Demo Mode."""
     variant = _DEMO_HOOK_VARIANTS[variation_index % len(_DEMO_HOOK_VARIANTS)]
     bible = blueprint.flow_setup.locked_visual_bible_en
+    geo = blueprint.flow_setup.exact_product_geometry_lock_en
     new_s1 = FlowScene(
         scene_number=1,
         role="Hook",
@@ -668,8 +673,9 @@ def build_offline_demo_regenerated_hook(
         duration_sec=5,
         continuity_note=variant["continuity"],
         flow_prompt_en=(
-            f"[Visual Bible: {bible}] {variant['action_en']}. "
-            "Audio: subtle realistic room ambience and natural product foley only, no background music, no spoken dialogue."
+            f"Vertical 9:16 commercial frame, 35mm macro opening. {bible}. {geo}. "
+            f"{variant['action_en']}. "
+            "Audio: quiet natural ambient soundscape and crisp realistic product foley only, silent presenter."
         ),
         vo_script_id=variant["vo_id"],
         on_screen_text_id=variant["ost_id"],

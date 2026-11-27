@@ -67,6 +67,7 @@ flowchart TD
 | `scripts/copy_secrets_for_cloud.py` | Utilitas CLI Mac untuk menyalin `.env` lokal ke clipboard sebagai TOML Cloud Secrets |
 | `docs/USER_GUIDE.md` | Commercial Operations Playbook (**English**) |
 | `docs/USER_GUIDE.id.md` | Panduan Operasional Komersial (**Bahasa Indonesia**) |
+| `docs/GOOGLE_FLOW_PROMPT_PLAYBOOK.md` | Panduan teknis 5 hukum prompt anti-halu Google Flow / Veo 3.1 |
 | `src/schemas.py` | Skema Pydantic v2 (`TalentSavedProfile`, `ProductKnowledgeBrief`, `FlowSetup`, `FlowScene`, `BlueprintResponse`) |
 | `src/prompts.py` | System prompt sutradara komersial, pemecah tag `@me`, & *Offline Demo builder* |
 | `src/blueprint_engine.py` | Penegak 1:1 *Product Geometry Lock*, sanitasi anti-lipat/rusak, pengikat `@me`, dan CTA |

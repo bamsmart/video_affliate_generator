@@ -1,4 +1,4 @@
-"""Core engine enforcing 1:1 Product Geometry Lock, Indonesian Google Flow Avatar Lock, and Platform Safety."""
+"""Core engine enforcing Veo 3.1 / Google Flow 5-Law Anti-Hallucination & Positive Director Framing."""
 
 from __future__ import annotations
 
@@ -15,8 +15,8 @@ from src.schemas import (
 )
 
 FOLEY_AUDIO_SUFFIX = (
-    "Audio: subtle realistic room ambience and natural product foley only, "
-    "no background music, no spoken dialogue."
+    "Audio: quiet natural ambient soundscape and crisp realistic product foley only, "
+    "silent presenter."
 )
 
 # Mechanical deformation actions that cause Google Flow / Veo to hallucinate wrong legs, hinges, or shapes
@@ -36,6 +36,45 @@ _DEFORMATION_REPLACEMENTS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\bmorphing\b", re.IGNORECASE), "maintaining exact shape"),
 ]
 
+# "Pink Elephant" negative triggers in Veo 3.1 text prompts that must be stripped or converted positive
+_NEGATIVE_TRIGGER_REPLACEMENTS: list[tuple[re.Pattern[str], str]] = [
+    (
+        re.compile(
+            r"(?:strictly\s+)?no\s+(?:western|caucasian|european)"
+            r"(?:\s*(?:,|and|or)\s*(?:no\s+)?(?:western|caucasian|european))*\s*(?:facial\s+)?features?",
+            re.IGNORECASE,
+        ),
+        "authentic native Indonesian Nusantara features",
+    ),
+    (
+        re.compile(
+            r"\b(?:keep\s+exact\s+leg/frame/body\s+geometry[^;\n]*;\s*)?"
+            r"do\s+not\s+(?:redesign|invent|fold|deform|distort|alter|change)[^.;!\n]*[.;!]?",
+            re.IGNORECASE,
+        ),
+        "",
+    ),
+    (re.compile(r"\b(?:do\s+not|don't)\b", re.IGNORECASE), ""),
+    (re.compile(r"\b(?:never\s+shown\s+damaged\s+or\s+broken|never\s+damaged|no\s+damage\s+to\s+product)\b", re.IGNORECASE), "pristine intact finish"),
+    (re.compile(r"\bwithout\s+wobbling\b", re.IGNORECASE), "with rock-solid stability"),
+    (re.compile(r"\bwithout\s+altering\s+([^.;!\n]+)", re.IGNORECASE), r"preserving original \1"),
+    (re.compile(r"\bwithout\s+any\s+invented\s+or\s+altered\s+parts\b", re.IGNORECASE), "maintaining locked static geometry"),
+    (re.compile(r"\bwithout\s+(?:any\s+)?sticky\s+film(?:\s+or\s+pilling)?\b", re.IGNORECASE), "with a smooth matte finish"),
+    (re.compile(r"\bzero\s+sticky\s+film(?:\s+or\s+pilling)?\b", re.IGNORECASE), "smooth matte-hydrated skin sheen"),
+    (re.compile(r"\bno\s+human\s+face(?:\s+in\s+frame)?\b", re.IGNORECASE), "clean framing solely on product and hands"),
+    (re.compile(r"\b(?:strictly\s+)?faceless\s+product\s+b-roll\b", re.IGNORECASE), "macro hands-only product B-roll"),
+    (re.compile(r"\bno\s+background\s+music\b", re.IGNORECASE), "quiet natural ambient soundscape"),
+    (re.compile(r"\bno\s+spoken\s+dialogue\b", re.IGNORECASE), "silent presenter"),
+    (re.compile(r"\b(blonde-haired|blue-eyed)\b", re.IGNORECASE), "dark-haired Indonesian"),
+    (re.compile(r"\b(caucasian|western|european)\s+(man|woman|creator|person|talent|model|features)\b", re.IGNORECASE), r"authentic native Indonesian \2"),
+    (re.compile(r"\b(caucasian|western|european)\b", re.IGNORECASE), "Indonesian"),
+]
+
+_BRACKET_PREFIX_RE = re.compile(
+    r"\[\s*(?:Visual Bible|STRICT PRODUCT LOCK[^:\]]*|INDONESIAN AVATAR LOCK|SUBJECT LOCK)\s*:?\s*",
+    re.IGNORECASE,
+)
+
 
 def count_words(text: str) -> int:
     """Count spoken words in an Indonesian VO or headline string."""
@@ -51,40 +90,21 @@ def _trim_headline_words(text: str, max_words: int = 5) -> str:
 
 
 def sanitize_product_deformation_terms(prompt_en: str) -> str:
-    """Remove folding/unfolding/collapsing verbs that make Google Flow invent wrong product legs/parts."""
-    cleaned = prompt_en
-    # Protect our own negative guard clause if already present
-    guard_marker = "do NOT redesign legs, do NOT invent unseen parts, and do NOT fold or deform"
-    has_guard = guard_marker.lower() in cleaned.lower()
-    if has_guard:
-        idx = cleaned.lower().find("[strict product lock")
-        if idx != -1:
-            end_idx = cleaned.find("]", idx)
-            if end_idx != -1:
-                prefix = cleaned[:idx]
-                lock_part = cleaned[idx : end_idx + 1]
-                suffix = cleaned[end_idx + 1 :]
-                return (
-                    _apply_deformation_regex(prefix)
-                    + lock_part
-                    + _apply_deformation_regex(suffix)
-                )
-    return _apply_deformation_regex(cleaned)
+    """Strip meta-brackets, quotation marks, deformation verbs, and Veo Pink-Elephant negative triggers."""
+    out = (prompt_en or "").replace('"', "")
+    out = _BRACKET_PREFIX_RE.sub("", out)
+    out = out.replace("[", "").replace("]", "")
 
-
-def _apply_deformation_regex(segment: str) -> str:
-    out = segment
     for pattern, repl in _DEFORMATION_REPLACEMENTS:
         out = pattern.sub(repl, out)
-    # Remove positive Western model descriptors if accidentally generated outside "NO Western/Caucasian"
-    out = re.sub(r"\b(blonde-haired|blue-eyed)\b", "dark-haired Indonesian", out, flags=re.IGNORECASE)
-    out = re.sub(
-        r"(?<!no\s)(?<!not\s)\b(caucasian|european)\s+(man|woman|creator|person|talent|model)\b",
-        r"authentic native Indonesian \2",
-        out,
-        flags=re.IGNORECASE,
-    )
-    return out
+    for pattern, repl in _NEGATIVE_TRIGGER_REPLACEMENTS:
+        out = pattern.sub(repl, out)
+
+    out = re.sub(r"\s+([,.;:!?])", r"\1", out)
+    out = re.sub(r",\s*,+", ", ", out)
+    out = re.sub(r"\.\s*\.+", ".", out)
+    out = re.sub(r"[ \t]{2,}", " ", out)
+    return out.strip()
 
 
 def _parse_avatar_handle_and_traits(raw_tag: str) -> tuple[str, str]:
@@ -118,13 +138,13 @@ def _bind_avatar_handle_in_segment(segment: str, handle: str) -> str:
         flags=re.IGNORECASE,
     )
     out = re.sub(
-        r"\b(?:creator|talent)\s+(stands|sits|holds|points|shows|lifts|presses|touches|rests|gestures|walks|smiles|speaks|looks)\b",
+        r"\b(?:creator|talent)\s+(stands|sits|holds|points|shows|lifts|presses|touches|rests|gestures|walks|smiles|speaks|looks|dispenses|releases)\b",
         rf"{handle} \1",
         out,
         flags=re.IGNORECASE,
     )
     out = re.sub(
-        r"\b(?:a|the)\s+(?:(?:indonesian)\s+)?(?:man|woman)\s+(stands|sits|holds|points|shows|lifts|presses|touches|rests|gestures|walks|smiles|looks)\b",
+        r"\b(?:a|the)\s+(?:(?:indonesian)\s+)?(?:man|woman)\s+(stands|sits|holds|points|shows|lifts|presses|touches|rests|gestures|walks|smiles|looks|dispenses|releases)\b",
         rf"{handle} \1",
         out,
         flags=re.IGNORECASE,
@@ -135,23 +155,15 @@ def _bind_avatar_handle_in_segment(segment: str, handle: str) -> str:
     return out
 
 
-def _apply_to_unbracketed(text: str, transform) -> str:
-    """Apply `transform` only to segments outside `[...]` lock blocks."""
-    parts = re.split(r"(\[[^\]]*\])", text)
-    for i in range(0, len(parts), 2):
-        parts[i] = transform(parts[i])
-    return "".join(parts)
-
-
 def build_avatar_identity_lock_en(
     profile: TalentSavedProfile | None,
     is_faceless: bool,
 ) -> str:
-    """Build deterministic Google Flow `@me` Avatar + Native Indonesian Identity lock."""
+    """Build clean positive Indonesian @me Avatar identity prose for Veo 3.1."""
     if is_faceless:
         return (
-            "SUBJECT LOCK: Faceless B-roll — show only natural warm medium-tan Indonesian hands "
-            "interacting gently with the product; strictly NO human face in frame."
+            "clean natural warm medium-tan Indonesian hands only in frame, "
+            "keeping visual focus solely on the pristine product"
         )
 
     presence = profile.talent_presence if profile else TalentPresence.AVATAR_MALE_ID
@@ -162,88 +174,101 @@ def build_avatar_identity_lock_en(
 
     if presence == TalentPresence.AVATAR_HIJAB_ID:
         person_desc = (
-            "authentic native Indonesian woman wearing a neat hijab, with Southeast Asian Nusantara facial structure, "
-            "natural warm Indonesian skin tone, and dark brown eyes"
+            "an authentic native Indonesian woman wearing a neat hijab, "
+            "with Southeast Asian Nusantara facial structure, warm Indonesian skin tone, and dark brown eyes"
         )
     elif presence == TalentPresence.AVATAR_FEMALE_ID:
         person_desc = (
-            "authentic native Indonesian woman with Southeast Asian Nusantara facial structure, "
-            "natural warm Indonesian skin tone, natural dark black hair, and dark brown eyes"
+            "an authentic native Indonesian woman with Southeast Asian Nusantara facial structure, "
+            "warm Indonesian skin tone, natural dark black hair, and dark brown eyes"
         )
     else:
         person_desc = (
-            "authentic native Indonesian man with Southeast Asian Nusantara facial structure, "
-            "natural warm sawo-matang Indonesian skin tone, neat dark black hair, and dark brown eyes"
+            "an authentic native Indonesian man with Southeast Asian Nusantara facial structure, "
+            "warm sawo-matang Indonesian skin tone, neat dark black hair, and dark brown eyes"
         )
 
     traits_clause = f", {extra_traits}" if extra_traits else ""
-    outfit_clause = f", consistent attire ({outfit_raw})" if outfit_raw else ""
+    outfit_clause = f", wearing consistent attire ({outfit_raw})" if outfit_raw else ""
     return (
-        f"INDONESIAN AVATAR LOCK: Featuring {handle} — use the exact 1:1 face, facial bone structure, "
-        f"glasses/hair, eyes, and identity of {handle} — {person_desc}{traits_clause}{outfit_clause}; "
-        "strictly NO Western, NO Caucasian, and NO European facial features."
+        f"Featuring {handle} — {person_desc}{traits_clause}{outfit_clause}, "
+        f"preserving exact 1:1 facial structure and identity of {handle}"
     )
 
 
-def _inject_visual_bible_and_locks(
+def _strip_audio_and_framing_prefix(body: str) -> str:
+    """Remove trailing Audio cue and leading 9:16/Extend framing header for idempotent composition."""
+    cleaned = re.sub(r"\s*Audio:\s*.*$", "", body, flags=re.IGNORECASE | re.DOTALL).strip()
+    cleaned = re.sub(
+        r"^(?:Seamless continuation from the previous frame,\s*)?(?:Vertical\s+)?9:16(?:\s+vertical)?\s+commercial\s+(?:frame|video|shot)[.,:]?\s*",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    ).strip()
+    cleaned = re.sub(
+        r"^Seamless continuation from the previous frame[.,:\s]*",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    ).strip()
+    return cleaned
+
+
+def _compose_veo_director_prompt(
     prompt_en: str,
     visual_bible_en: str,
     geometry_lock_en: str,
     avatar_lock_en: str,
+    flow_action: str,
     avatar_handle: str = "@me",
     is_faceless: bool = False,
 ) -> str:
-    clean_prompt = sanitize_product_deformation_terms(prompt_en.strip())
-    clean_bible = sanitize_product_deformation_terms(visual_bible_en.strip())
-    clean_geo = geometry_lock_en.strip()
+    """Compose clean, linear, positive-only 5-Part Veo 3.1 Director prose (100% idempotent)."""
+    body = sanitize_product_deformation_terms(prompt_en)
+    body = _strip_audio_and_framing_prefix(body)
+    clean_geo = sanitize_product_deformation_terms(geometry_lock_en).rstrip(".")
+    clean_bible = sanitize_product_deformation_terms(visual_bible_en).rstrip(".")
+    clean_avatar = avatar_lock_en.rstrip(".")
 
     if not is_faceless:
-        clean_prompt = _apply_to_unbracketed(
-            clean_prompt,
-            lambda seg: _bind_avatar_handle_in_segment(seg, avatar_handle),
-        )
-        # Ensure standalone avatar handle appears in the visible action text outside lock blocks
-        unbracketed_text = " ".join(re.split(r"\[[^\]]*\]", clean_prompt)[0::2])
-        handle_pattern = rf"(?:^|(?<=\s)){re.escape(avatar_handle)}(?=$|[\s'.,;:!?])"
-        if not re.search(handle_pattern, unbracketed_text):
-            parts = re.split(r"(\[[^\]]*\])", clean_prompt)
-            for idx in range(len(parts) - 1, -1, -2):
-                stripped = parts[idx].strip()
-                if stripped and not re.fullmatch(r"9:16 vertical commercial frame\.?", stripped, re.IGNORECASE):
-                    parts[idx] = f" Featuring {avatar_handle} interacting naturally with the product: {stripped}"
-                    break
-            else:
-                parts.append(f" Featuring {avatar_handle} interacting naturally with the product.")
-            clean_prompt = "".join(parts)
+        body = _bind_avatar_handle_in_segment(body, avatar_handle)
+        if "authentic native indonesian" not in body.lower():
+            body = f"{clean_avatar}. {body}" if body else f"{clean_avatar}."
+        handle_pat = rf"(?:^|(?<=\s)){re.escape(avatar_handle)}(?=$|[\s'.,;:!?])"
+        if not re.search(handle_pat, body):
+            body = f"Featuring {avatar_handle} interacting naturally with the product. {body}"
+    else:
+        if "indonesian hands" not in body.lower():
+            body = f"{clean_avatar}. {body}" if body else f"{clean_avatar}."
 
-    blocks: list[str] = []
-    if "9:16" not in clean_prompt:
-        blocks.append("9:16 vertical commercial frame.")
+    if clean_geo:
+        geo_probe = clean_geo[:35].lower()
+        if geo_probe not in body.lower():
+            body = (
+                f"{body.rstrip('.')}. "
+                f"The product maintains locked static geometry and original proportions matching the Product Ingredient 1:1: {clean_geo}."
+            )
+        elif "locked static geometry" not in body.lower():
+            body = f"{body.rstrip('.')}. Locked static geometry and original proportions remain preserved across every frame."
 
-    if clean_bible:
-        bible_probe = clean_bible[:42].lower()
-        if bible_probe not in clean_prompt.lower() and "[visual bible" not in clean_prompt.lower():
-            blocks.append(f"[Visual Bible: {clean_bible}]")
+    # Add lightweight environment/lighting anchor only if body has no setting/lighting cue yet
+    if clean_bible and not any(
+        kw in body.lower() for kw in ("sunlight", "sunlit", "morning", "window", "outdoor", "indoor", "grass", "table", "room", "stone", "lighting")
+    ):
+        bible_body = _strip_audio_and_framing_prefix(clean_bible).rstrip(".")
+        if bible_body:
+            body = f"{body.rstrip('.')}. Setting and lighting: {bible_body}."
 
-    if clean_geo and "[strict product lock" not in clean_prompt.lower():
-        blocks.append(
-            f"[STRICT PRODUCT LOCK — MATCH UPLOADED PRODUCT INGREDIENT 1:1: {clean_geo} "
-            "Keep exact leg/frame/body geometry, joint structure, proportions, colors, and logo identical to the Product Ingredient photo; "
-            "do NOT redesign legs, do NOT invent unseen parts, and do NOT fold or deform the product.]"
-        )
-
-    if avatar_lock_en and "indonesian avatar lock:" not in clean_prompt.lower() and "subject lock:" not in clean_prompt.lower():
-        blocks.append(f"[{avatar_lock_en}]")
-
-    blocks.append(clean_prompt)
-    combined = re.sub(r"[ \t]{2,}", " ", " ".join(b for b in blocks if b)).strip()
-
-    if "no background music" not in combined.lower():
-        if not combined.endswith("."):
-            combined += "."
-        combined = f"{combined} {FOLEY_AUDIO_SUFFIX}"
-
-    return combined
+    framing_prefix = (
+        "Seamless continuation from the previous frame, vertical 9:16 commercial frame,"
+        if flow_action == "Extend"
+        else "Vertical 9:16 commercial frame,"
+    )
+    body_clean = body.lstrip(".,:; ")
+    full_body = f"{framing_prefix} {body_clean}".rstrip(" .")
+    full_body = re.sub(r"\.\s*\.+", ".", full_body)
+    full_body = re.sub(r"[ \t]{2,}", " ", full_body).strip()
+    return f"{full_body}. {FOLEY_AUDIO_SUFFIX}"
 
 
 def _normalize_flow_action(raw_action: str, scene_idx: int, prompt_en: str) -> str:
@@ -269,22 +294,19 @@ def enforce_commercial_mechanisms(
     platform_mode: PlatformMode = PlatformMode.SHOPEE,
     profile: TalentSavedProfile | None = None,
 ) -> BlueprintResponse:
-    """Deterministically enforce 1:1 Product Geometry Lock, Indonesian Avatar Lock, and Platform Safety."""
+    """Deterministically enforce Veo 3.1 positive framing, 1:1 Product Lock, @me Lock, and Platform Safety."""
     effective_faceless = profile.is_faceless if profile is not None else is_faceless
     avatar_handle, _ = _parse_avatar_handle_and_traits(
         profile.avatar_flow_tag if profile else "@me"
     )
     bible = sanitize_product_deformation_terms(bp.flow_setup.locked_visual_bible_en.strip())
     if not effective_faceless:
-        bible = _apply_to_unbracketed(
-            bible,
-            lambda seg: _bind_avatar_handle_in_segment(seg, avatar_handle),
-        )
-    geo_lock = bp.flow_setup.exact_product_geometry_lock_en.strip()
+        bible = _bind_avatar_handle_in_segment(bible, avatar_handle)
+    geo_lock = sanitize_product_deformation_terms(bp.flow_setup.exact_product_geometry_lock_en.strip())
     avatar_lock = build_avatar_identity_lock_en(profile=profile, is_faceless=effective_faceless)
 
-    if not effective_faceless and "no western" not in bible.lower():
-        bible = f"{bible} [{avatar_lock}]"
+    if not effective_faceless and "authentic native indonesian" not in bible.lower():
+        bible = f"{bible.rstrip('.')}. {avatar_lock}."
 
     if effective_faceless:
         checklist = [
@@ -294,8 +316,8 @@ def enforce_commercial_mechanisms(
     else:
         checklist = [
             "Ingredient 1 — Foto Produk Bersih (pastikan SELURUH bentuk kaki/rangka/bodi produk terlihat utuh, tidak terpotong)",
-            f"Avatar Anda ({avatar_handle}) — Sudah otomatis tertulis sebagai '{avatar_handle}' di setiap prompt! Cukup tempel prompt ke Google Flow (atau pilih Avatar Anda dari asset menu jika perlu)",
-            "PENTING: Pastikan Foto Produk tetap aktif di Ingredients/Asset setiap kali klik New Scene maupun Jump to agar kaki/bentuk produk tidak berubah!",
+            f"Avatar Anda ({avatar_handle}) — Otomatis terpasang berdiri sendiri sebagai '{avatar_handle}' di setiap prompt",
+            "Tips Google Flow: Uji dulu pakai Veo Fast/Lite untuk cek kestabilan kaki produk, lalu render final di Veo Quality; pastikan Ingredient Produk aktif saat New Scene & Jump to!",
         ]
 
     updated_setup = bp.flow_setup.model_copy(
@@ -309,22 +331,23 @@ def enforce_commercial_mechanisms(
 
     fixed_scenes: list[FlowScene] = []
     for idx, scene in enumerate(bp.scenes, start=1):
-        enriched_prompt = _inject_visual_bible_and_locks(
+        resolved_action = _normalize_flow_action(scene.flow_action, idx, scene.flow_prompt_en)
+        enriched_prompt = _compose_veo_director_prompt(
             prompt_en=scene.flow_prompt_en,
             visual_bible_en=bible,
             geometry_lock_en=geo_lock,
             avatar_lock_en=avatar_lock,
+            flow_action=resolved_action,
             avatar_handle=avatar_handle,
             is_faceless=effective_faceless,
         )
-        resolved_action = _normalize_flow_action(scene.flow_action, idx, enriched_prompt)
 
         continuity = scene.continuity_note.strip()
         if not continuity:
             if idx == 1:
                 continuity = "Adegan pembuka: pastikan produk tampil utuh persis seperti foto Ingredients tanpa aksi melipat/mengubah rangka."
             elif resolved_action == "Jump to":
-                continuity = f"Pindah sudut kamera (Jump to) ke detail yang memang terlihat di foto dengan tetap memilih Ingredients Produk + Avatar dari Scene {idx - 1}."
+                continuity = f"Pindah sudut kamera (Jump to) ke detail yang memang terlihat di foto dengan tetap memilih Ingredients Produk dari Scene {idx - 1}."
             else:
                 continuity = f"Melanjutkan gerakan mulus dari frame terakhir Scene {idx - 1} menggunakan tombol Extend."
 
@@ -417,7 +440,7 @@ def apply_regenerated_hook(
     platform_mode: PlatformMode = PlatformMode.SHOPEE,
     profile: TalentSavedProfile | None = None,
 ) -> BlueprintResponse:
-    """Replace Scene 1 with a new anti-spam Hook and re-enforce Product & Avatar locks."""
+    """Replace Scene 1 with a new anti-spam Hook and re-enforce Veo 3.1 Product & @me locks."""
     new_scenes = list(bp.scenes)
     new_scenes[0] = payload.scene_1.model_copy(
         update={

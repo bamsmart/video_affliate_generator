@@ -38,11 +38,18 @@ def test_app_has_only_product_uploader_and_supports_deep_7_scene_product_knowled
     assert record_3 is not None
     assert len(record_3.blueprint.scenes) == 3
     for sc in record_3.blueprint.scenes:
-        assert "STRICT PRODUCT LOCK" in sc.flow_prompt_en
-        assert "INDONESIAN AVATAR LOCK" in sc.flow_prompt_en
-        assert " @me " in sc.flow_prompt_en
-        assert "(@me)" not in sc.flow_prompt_en
-        assert "strictly NO Western, NO Caucasian" in sc.flow_prompt_en
+        p = sc.flow_prompt_en
+        low = p.lower()
+        assert "[" not in p and "]" not in p
+        assert '"' not in p
+        assert " @me " in p
+        assert "(@me)" not in p
+        assert "authentic native indonesian" in low
+        assert "locked static geometry" in low
+        assert "caucasian" not in low and "western" not in low
+        assert "quiet natural ambient soundscape" in low
+        if sc.flow_action == "Extend":
+            assert p.startswith("Seamless continuation from the previous frame,")
     assert len(record_3.blueprint.product_knowledge.technical_specs_and_materials) >= 3
     assert "📌" in record_3.blueprint.product_knowledge.pinned_comment_faq_id
     assert "Deskripsi/Spesifikasi Toko" in record_3.knowledge_sources
