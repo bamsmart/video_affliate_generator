@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from src.schemas import (
@@ -30,20 +31,26 @@ Video kita WAJIB menang bersaing dengan memberikan **nilai tambah edukatif yang 
 - Jangan mengarang angka palsu yang tidak masuk akal: gunakan fakta dari gambar/screenshot, data website/spesifikasi toko yang dilampirkan, serta pengetahuan teknis standar kategori produk secara akurat & jujur.
 
 ATURAN TEKNIS WAJIB:
-1. VISUAL BIBLE KONTEKSTUAL: Buat SATU definisi konsisten untuk lokasi (sesuaikan dengan kategori produk jika mode lokasi otomatis — misal taman/teras sore untuk kursi camping outdoor, dapur bersih untuk alat masak, meja rias terang untuk skincare), pencahayaan, color grading, gaya kamera, dan gaya subjek. SUNTIKKAN elemen visual bible ini ke dalam SETIAP prompt scene.
+1. VISUAL BIBLE KONTEKSTUAL: Buat SATU definisi konsisten untuk lokasi (sesuaikan dengan kategori produk jika mode lokasi otomatis — misal taman/teras sore untuk kursi camping outdoor, dapur bersih untuk alat masak, meja rias terang untuk skincare), pencahayaan, color grading, gaya kamera, dan identitas subjek. SUNTIKKAN elemen visual bible ini ke dalam SETIAP prompt scene.
 2. CONTINUITY BRIDGING & TOMBOL GOOGLE FLOW SPESIFIK:
    - Scene 1 WAJIB memakai `flow_action`: "New Scene".
    - Scene 2 dan seterusnya pilih secara spesifik antara:
      * "Extend": kamera melanjutkan gerakan langsung dari frame terakhir klip sebelumnya tanpa cut sudut kamera.
-     * "Jump to": berpindah sudut kamera (misal cut ke macro close-up jahitan/tekstur/material produk untuk membuktikan Product Knowledge!) dengan objek & lokasi yang sama.
-3. AKURASI PRODUK & BRAND SAFETY (ANTI-PRODUK RUSAK):
-   - Pertahankan 100% bentuk, warna, logo, dan kemasan asli produk dari referensi Ingredients.
-   - DILARANG KERAS memvisualisasikan produk yang sedang dipromosikan dalam keadaan rusak, goyang, patah, bocor, robek, atau gagal pada adegan Problem!
-4. BAHASA PROMPT FLOW: Semua `flow_prompt_en` WAJIB dalam Bahasa Inggris sinematis yang menonjolkan detail fisik/kualitas material produk secara visual, dan diakhiri kalimat: "Audio: subtle realistic room ambience and natural product foley only, no background music, no spoken dialogue."
-5. MATEMATIKA VO BAHASA INDONESIA BERNILAI TAMBAH: Semua field berakhiran `_id` berarti KALIMAT BAHASA INDONESIA NATURAL (BUKAN kode nomor ID!). Kunci panjang `vo_script_id` ketat di **12-16 kata per scene** (untuk klip 5 detik). DILARANG menulis kalimat basa-basi kosong — setiap scene wajib memuat fakta spek/material/cara kerja/jawaban keraguan pembeli! Hindari klaim medis absolut ('menyembuhkan', 'mengobati', '100% ampuh', 'hilang permanen'), harga palsu ('termurah se-Indonesia'), atau ajakan transaksi luar aplikasi ('beli di WA').
-6. PRODUCT KNOWLEDGE BRIEF & PINNED COMMENT: Isi lengkap objek `product_knowledge`, termasuk `pinned_comment_faq_id` (komentar sematan siap copy-paste yang merangkum spek penting & jawaban pertanyaan umum pembeli).
-7. TERMINOLOGI PLATFORM: Untuk Shopee gunakan istilah "Keranjang Oranye" atau "Tautan Produk di bawah" (jangan sebut Keranjang Kuning di naskah Shopee). Semua hashtag bebas spasi internal (`#KursiLipat`).
-8. OUTPUT FORMAT: Kembalikan HANYA dalam format JSON valid sesuai skema yang ditentukan tanpa teks tambahan di luar JSON.\
+     * "Jump to": berpindah sudut kamera ke detail produk yang MEMANG TERLIHAT NYATA di foto produk (dengan tetap memasang Ingredients Produk + Avatar yang sama).
+3. FORENSIC 1:1 PRODUCT GEOMETRY LOCK (ANTI-HALU BENTUK PRODUK & KAKI/RANGKA):
+   - Amati foto produk secara forensik piksel demi piksel! Isi `flow_setup.exact_product_geometry_lock_en` dengan rincian geometri fisik PERSIS yang terlihat nyata di foto: struktur & jumlah kaki/tiang/rangka/botol, arah silang pipa, warna cat tiang/kaki, warna karet sepatu kaki/sambungan, bentuk lekukan bodi/kain, serta posisi & teks logo asli.
+   - DILARANG MENGARANG BAGIAN BARU yang tidak terlihat di foto (contoh: jangan mengarang busa kepala, kantong samping, tali, atau menyebut kaki besi silver jika di foto kakinya berwarna cokelat/tan!). Jika deskripsi teks toko menyebut bonus/aksesori yang tidak tampak di foto, cukup sebutkan di `vo_script_id` — JANGAN divisualisasikan di `flow_prompt_en`!
+   - DILARANG KERAS AKSI DEFORMASI MEKANIS (`NO FOLDING / NO UNFOLDING / NO ASSEMBLING / NO MORPHING`): JANGAN PERNAH menyuruh Google Flow melipat (`folding`), membuka lipatan (`unfolding`), membongkar, merakit, atau memperlihatkan produk dalam keadaan terlipat! Produk harus selalu tampil UTUH dalam bentuk terbukanya persis seperti foto Ingredients (gunakan pergerakan kamera halus, tangan menyentuh bahan, duduk tenang di kursi yang sudah terbuka, atau menunjuk produk).
+   - DILARANG KERAS memvisualisasikan produk yang sedang dipromosikan dalam keadaan rusak, goyang, patah, bocor, robek, atau cacat di scene mana pun!
+4. KUNCI WAJAH AVATAR GOOGLE FLOW (`@me`) & KARAKTER ASLI INDONESIA (ANTI-WAJAH BARAT / BULE):
+   - Di Google Flow, avatar wajah pengguna dipanggil langsung lewat token **`@me`** di dalam prompt (*"Use your avatar by typing @me in your prompt"*).
+   - Jika mode subjek menggunakan Avatar Google Flow, WAJIB menulis token berdiri sendiri **`@me`** (dengan spasi di kiri/kanannya, JANGAN dibungkus tanda kurung `(@me)`) secara langsung sebagai subjek yang beraksi di **SETIAP scene** `flow_prompt_en` (contoh: `@me stands beside the product`, `@me sits comfortably on the chair`, `@me points down toward the shopping link`). Jangan mengganti `@me` dengan istilah generik seperti `"the creator"` atau `"a man"`.
+   - Tegaskan identitas wajah: **exact 1:1 face and identity of @me — authentic native Indonesian person, Southeast Asian Nusantara facial features, natural warm Indonesian sawo-matang skin tone, dark black hair, dark brown eyes — strictly NO Caucasian, NO Western, NO European facial features**.
+5. BAHASA PROMPT FLOW: Semua `flow_prompt_en` WAJIB dalam Bahasa Inggris sinematis presisi tinggi dan diakhiri kalimat: "Audio: subtle realistic room ambience and natural product foley only, no background music, no spoken dialogue."
+6. MATEMATIKA VO BAHASA INDONESIA BERNILAI TAMBAH: Semua field berakhiran `_id` berarti KALIMAT BAHASA INDONESIA NATURAL (BUKAN kode nomor ID!). Kunci panjang `vo_script_id` ketat di **12-16 kata per scene** (untuk klip 5 detik). DILARANG menulis kalimat basa-basi kosong — setiap scene wajib memuat fakta spek/material/cara kerja/jawaban keraguan pembeli! Hindari klaim medis absolut ('menyembuhkan', 'mengobati', '100% ampuh', 'hilang permanen'), harga palsu ('termurah se-Indonesia'), atau ajakan transaksi luar aplikasi ('beli di WA').
+7. PRODUCT KNOWLEDGE BRIEF & PINNED COMMENT: Isi lengkap objek `product_knowledge`, termasuk `pinned_comment_faq_id` (komentar sematan siap copy-paste yang merangkum spek penting & jawaban pertanyaan umum pembeli).
+8. TERMINOLOGI PLATFORM: Untuk Shopee gunakan istilah "Keranjang Oranye" atau "Tautan Produk di bawah" (jangan sebut Keranjang Kuning di naskah Shopee). Semua hashtag bebas spasi internal (`#KursiLipat`).
+9. OUTPUT FORMAT: Kembalikan HANYA dalam format JSON valid sesuai skema yang ditentukan tanpa teks tambahan di luar JSON.\
 """
 
 
@@ -55,18 +62,49 @@ def _persona_instruction(persona: PersonaStyle) -> str:
     return "Teman Jujur Paham Produk: akrab, jujur membahas detail bahan/fungsi nyata dan menjawab keraguan pembeli."
 
 
+def _split_avatar_tag(raw_tag: str) -> tuple[str, str]:
+    raw = (raw_tag or "").strip()
+    if not raw:
+        return "@me", ""
+    m = re.search(r"@[A-Za-z0-9_]+", raw)
+    if m:
+        handle = m.group(0)
+        traits = (raw[: m.start()] + " " + raw[m.end() :]).strip()
+        traits = re.sub(r"^[,;\s]+|[,;\s]+$", "", traits)
+        traits = re.sub(r"\s+", " ", traits)
+        return handle, traits
+    return "@me", raw
+
+
 def _presence_instruction(profile: TalentSavedProfile) -> str:
-    extra = f" ({profile.visual_notes.strip()})" if profile.visual_notes.strip() else ""
+    handle, traits = _split_avatar_tag(profile.avatar_flow_tag)
+    trait_info = f", ciri tambahan: {traits}" if traits else ""
+    extra = f" (outfit konsisten: {profile.visual_notes.strip()})" if profile.visual_notes.strip() else ""
     if profile.talent_presence == TalentPresence.FACELESS_BROLL:
         return (
-            "TANPA WAJAH / FOKUS B-ROLL DETAIL PRODUK & TANGAN: Seluruh klip Google Flow HANYA menampilkan detail makro material produk dan interaksi tangan rapi "
-            f"tanpa pernah menampilkan wajah manusia{extra} (wajah/avatar & suara diatur di CapCut)."
+            "TANPA WAJAH / FOKUS B-ROLL DETAIL PRODUK & TANGAN INDONESIA: Seluruh klip Google Flow HANYA menampilkan detail produk utuh dan interaksi tangan berkulit hangat sawo matang khas Indonesia "
+            f"tanpa pernah menampilkan wajah manusia{extra}."
         )
-    if profile.talent_presence == TalentPresence.FEMALE_HIJAB:
-        return f"Ada Talent di Flow: satu kreator wanita Indonesia berhijab rapi konsisten di semua scene{extra}."
-    if profile.talent_presence == TalentPresence.MALE:
-        return f"Ada Talent di Flow: satu kreator pria Indonesia berpenampilan kasual rapi konsisten di semua scene{extra}."
-    return f"Ada Talent di Flow: satu kreator wanita Indonesia berpenampilan kasual rapi konsisten di semua scene{extra}."
+    if profile.talent_presence == TalentPresence.AVATAR_HIJAB_ID:
+        return (
+            f"GUNAKAN AVATAR GOOGLE FLOW `{handle}` (WANITA BERHIJAB ASLI INDONESIA): "
+            f"WAJIB tulis token `{handle}` secara langsung (berdiri sendiri dengan spasi, jangan di dalam kurung) sebagai subjek utama di `locked_visual_bible_en` dan di SETIAP `flow_prompt_en` scene! "
+            "Kunci 100% wajah dari Avatar Google Flow tersebut sebagai wanita asli Indonesia berwajah khas Nusantara (Southeast Asian Indonesian), kulit sawo matang/kuning langsat alami Indonesia, berhijab rapi, "
+            f"DILARANG KERAS wajah orang Barat/bule/Kaukasia{trait_info}{extra}."
+        )
+    if profile.talent_presence == TalentPresence.AVATAR_MALE_ID:
+        return (
+            f"GUNAKAN AVATAR GOOGLE FLOW `{handle}` (PRIA ASLI INDONESIA): "
+            f"WAJIB tulis token `{handle}` secara langsung (berdiri sendiri dengan spasi, jangan di dalam kurung) sebagai subjek utama di `locked_visual_bible_en` dan di SETIAP `flow_prompt_en` scene! "
+            "Kunci 100% wajah dari Avatar Google Flow tersebut sebagai pria asli Indonesia berwajah khas Nusantara (Southeast Asian Indonesian), kulit sawo matang alami Indonesia, rambut hitam rapi, mata cokelat gelap, "
+            f"DILARANG KERAS wajah orang Barat/bule/Kaukasia{trait_info}{extra}."
+        )
+    return (
+        f"GUNAKAN AVATAR GOOGLE FLOW `{handle}` (WANITA ASLI INDONESIA): "
+        f"WAJIB tulis token `{handle}` secara langsung (berdiri sendiri dengan spasi, jangan di dalam kurung) sebagai subjek utama di `locked_visual_bible_en` dan di SETIAP `flow_prompt_en` scene! "
+        "Kunci 100% wajah dari Avatar Google Flow tersebut sebagai wanita asli Indonesia berwajah khas Nusantara (Southeast Asian Indonesian), kulit sawo matang/kuning langsat alami Indonesia, rambut hitam alami, "
+        f"DILARANG KERAS wajah orang Barat/bule/Kaukasia{trait_info}{extra}."
+    )
 
 
 def _platform_cta_rule(platform_mode: PlatformMode) -> str:
@@ -160,7 +198,10 @@ Preferensi Visual & Gaya Narasi:
 Catatan Tambahan Produk / Promo dari Pengguna:
 {extra_note.strip() or "(ekstrak detail selengkap-lengkapnya dari gambar produk & sumber pengetahuan di bawah)"}
 {knowledge_block}{anti_spam_block}
-Checklist Kualitas & Added Value Wajib:
+Checklist Kualitas, Anti-Halu Produk & Identitas Avatar Indonesia Wajib:
+- Isi `flow_setup.exact_product_geometry_lock_en` dengan deskripsi geometri fisik PERSIS yang terlihat di foto produk (bentuk & warna kaki/rangka/botol, sambungan, kain/permukaan, posisi logo). DILARANG mengarang komponen yang tidak tampak di foto!
+- DILARANG menulis aksi melipat (`folding`), membuka lipatan (`unfolding`), atau merakit di `flow_prompt_en` agar Google Flow tidak mengubah bentuk kaki/struktur produk!
+- Jika memakai Avatar, WAJIB menuliskan tag `@me` (berdiri sendiri dengan spasi, jangan di dalam tanda kurung) sebagai subjek pelaku di setiap `flow_prompt_en` scene, dengan fitur asli orang Indonesia (Nusantara, kulit sawo matang hangat, rambut hitam — BUKAN orang Barat/Caucasian).
 - Isi `product_knowledge` secara mendalam dan konkret (bedah material/kandungan, tips pakai pro, profil pembeli ideal, jawaban keraguan utama pembeli, pembeda dari kompetitor, dan `pinned_comment_faq_id` siap tempel di kolom komentar).
 - Jumlah item di `scenes` TEPAT {scene_count} scene (1 s.d. {scene_count}).
 - Setiap `vo_script_id` WAJIB **12-16 kata** Bahasa Indonesia natural yang menyebut detail nyata produk (bukan pujian umum kosong!).
@@ -218,7 +259,8 @@ Daftar Hook Lama yang DILARANG Diulang:
 
 Aturan Ketat:
 - `scene_1.scene_number` = 1, `scene_1.role` = "Hook", `scene_1.flow_action` = "New Scene", `scene_1.duration_sec` = 5.
-- Jangan pernah menampilkan produk dalam kondisi rusak/cacat.
+- Jika memakai Avatar, wajib tulis tag `@me` (berdiri sendiri dengan spasi, bukan di dalam kurung) sebagai subjek pelaku di `scene_1.flow_prompt_en` dengan identitas asli orang Indonesia.
+- Jangan pernah menampilkan produk dalam kondisi rusak/cacat atau aksi melipat/membongkar.
 - `scene_1.vo_script_id` WAJIB kalimat Bahasa Indonesia natural **12-16 kata** yang punya nilai tambah informasi (bukan kode ID).
 - `scene_1.on_screen_text_id` maksimal **5 kata**.
 
@@ -286,24 +328,49 @@ def build_offline_demo_blueprint(
     )
     promo_info = custom_note if custom_note else "Harga promo etalase + voucher gratis ongkir"
 
+    avatar_handle, avatar_traits = _split_avatar_tag(profile.avatar_flow_tag)
+    traits_clause = f" ({avatar_traits})" if avatar_traits else ""
     if profile.talent_presence == TalentPresence.FACELESS_BROLL:
-        subject_desc = "clean well-groomed hands only (strictly faceless product B-roll, no human face in frame)"
-    elif profile.talent_presence == TalentPresence.FEMALE_HIJAB:
-        subject_desc = "consistent young Indonesian female creator wearing a neat cream pashmina hijab and casual linen top"
-    elif profile.talent_presence == TalentPresence.MALE:
-        subject_desc = "consistent young Indonesian male creator wearing a neat casual olive linen shirt"
+        subject_desc = (
+            "clean well-groomed warm medium-tan Indonesian hands only "
+            "(strictly faceless product B-roll, no human face in frame)"
+        )
+    elif profile.talent_presence == TalentPresence.AVATAR_HIJAB_ID:
+        subject_desc = (
+            f"{avatar_handle}{traits_clause}, keeping the exact 1:1 face and identity of {avatar_handle}, "
+            "an authentic native Indonesian female creator with Nusantara Southeast Asian facial features, "
+            "warm Indonesian skin tone, wearing a neat cream pashmina hijab and casual linen top "
+            "(strictly NO Western or Caucasian features)"
+        )
+    elif profile.talent_presence == TalentPresence.AVATAR_MALE_ID:
+        subject_desc = (
+            f"{avatar_handle}{traits_clause}, keeping the exact 1:1 face and identity of {avatar_handle}, "
+            "an authentic native Indonesian male creator with Nusantara Southeast Asian facial features, "
+            "warm sawo-matang Indonesian skin tone, neat short black hair, wearing a casual olive linen shirt "
+            "(strictly NO Western or Caucasian features)"
+        )
     else:
-        subject_desc = "consistent young Indonesian female creator wearing a neat cream linen casual shirt"
+        subject_desc = (
+            f"{avatar_handle}{traits_clause}, keeping the exact 1:1 face and identity of {avatar_handle}, "
+            "an authentic native Indonesian female creator with Nusantara Southeast Asian facial features, "
+            "warm Indonesian skin tone, natural dark black hair, wearing a neat cream linen casual shirt "
+            "(strictly NO Western or Caucasian features)"
+        )
 
+    geometry_lock = (
+        "Exact cylindrical 30ml frosted matte glass dropper bottle with white rubber bulb, "
+        "silver collar ring, and minimalist black front typography '5% Niacinamide + Ceramide' "
+        "matching the uploaded Product Ingredient image 1:1 without altering bottle proportions, cap shape, or label."
+    )
     setting_desc = (
         profile.custom_location.strip()
         if profile.location_mode == LocationLockMode.LOCKED_CUSTOM and profile.custom_location.strip()
-        else "sunlit minimalist Indonesian vanity table with soft morning window light"
+        else "sunlit minimalist Indonesian room with soft morning window light"
     )
     visual_bible = (
         f"9:16 vertical commercial video shot on 35mm f/1.8 lens in a {setting_desc}, "
         f"clean neutral warm beige-white color grading, featuring {subject_desc}, "
-        f"keeping the exact product bottle geometry, frosted glass texture, and printed label strictly identical to the uploaded Ingredients reference."
+        f"keeping the exact product bottle geometry, frosted glass texture, and printed label strictly identical to the uploaded Product Ingredient reference."
     )
 
     cta_phrase = (
@@ -561,6 +628,7 @@ def build_offline_demo_blueprint(
                 "Foto Produk Bersih (gunakan hasil crop bebas UI Shopee)"
             ],
             aspect_ratio="9:16",
+            exact_product_geometry_lock_en=geometry_lock,
             locked_visual_bible_en=visual_bible,
         ),
         scenes=scenes,

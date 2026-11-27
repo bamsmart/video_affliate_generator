@@ -31,29 +31,47 @@ def test_text_only_talent_presets_and_legacy_migration(tmp_path: Path):
     prof_dir = tmp_path / "profile"
     col = load_preset_collection(prof_dir)
     assert len(col.presets) >= 4
-    assert load_talent_profile(prof_dir).is_faceless is True  # Default is Fokus Produk / B-Roll
+    default_prof = load_talent_profile(prof_dir)
+    assert default_prof.is_faceless is False  # Default is Avatar Google Flow Saya (Pria Indonesia)
+    assert default_prof.talent_presence == TalentPresence.AVATAR_MALE_ID
+    assert default_prof.avatar_flow_tag == "@me"
+
+    # Legacy preset file on disk missing avatar_flow_tag gets normalized to "@me"
+    legacy_dir = tmp_path / "legacy_profile"
+    legacy_dir.mkdir(parents=True, exist_ok=True)
+    (legacy_dir / "talent_presets.json").write_text(
+        '{"active_preset_id":"avatar_pria_id","presets":[{"preset_id":"avatar_pria_id","talent_name":"Pria","talent_presence":"Pria","avatar_flow_tag":""}]}',
+        encoding="utf-8",
+    )
+    migrated_col = load_preset_collection(legacy_dir)
+    assert migrated_col.presets[0].avatar_flow_tag == "@me"
 
     prof = TalentSavedProfile(
         preset_id="hijab_preset",
         talent_name="Hijab Antusias",
-        talent_presence=TalentPresence.FEMALE_HIJAB,
+        talent_presence=TalentPresence.AVATAR_HIJAB_ID,
         persona=PersonaStyle.ANTUSIAS,
+        avatar_flow_tag="@hijab_saya",
         visual_notes="Pashmina krem kasual",
     )
     save_talent_profile(prof, prof_dir)
     active = load_talent_profile(prof_dir)
     assert active.talent_name == "Hijab Antusias"
+    assert active.avatar_flow_tag == "@hijab_saya"
     assert active.is_faceless is False
 
     switched = set_active_preset("broll_produk", prof_dir)
     assert switched.is_faceless is True
 
-    # Legacy dict with is_faceless=True migrates cleanly without photo_paths
+    # Legacy dicts migrate cleanly
     migrated = TalentSavedProfile.model_validate({"talent_name": "Old", "is_faceless": True})
     assert migrated.talent_presence == TalentPresence.FACELESS_BROLL
+    migrated_male = TalentSavedProfile.model_validate({"talent_name": "OldMale", "talent_presence": "Pria"})
+    assert migrated_male.talent_presence == TalentPresence.AVATAR_MALE_ID
 
 
 def test_smart_shopee_screenshot_cropper():
+    # Ultra-tall 20:9 phone screenshot (540x1200 -> H/W = 2.22 >= 1.92) is safely trimmed
     tall_buf = io.BytesIO()
     Image.new("RGB", (540, 1200), (240, 240, 240)).save(tall_buf, format="PNG")
     assert is_mobile_screenshot(tall_buf.getvalue()) is True
@@ -62,11 +80,87 @@ def test_smart_shopee_screenshot_cropper():
     with Image.open(io.BytesIO(cropped_bytes)) as out_im:
         assert out_im.height < 1200
 
-    sq_buf = io.BytesIO()
-    Image.new("RGB", (800, 800), (200, 210, 220)).save(sq_buf, format="PNG")
-    assert is_mobile_screenshot(sq_buf.getvalue()) is False
-    _, sq_cropped = prepare_clean_product_ingredient(sq_buf.getvalue())
-    assert sq_cropped is False
+    # Standard 9:16 portrait product photo (720x1280 -> H/W = 1.77 < 1.92) is NOT cropped so chair legs stay intact!
+    portrait_buf = io.BytesIO()
+    Image.new("RGB", (720, 1280), (200, 210, 220)).save(portrait_buf, format="PNG")
+    assert is_mobile_screenshot(portrait_buf.getvalue()) is False
+    _, portrait_cropped = prepare_clean_product_ingredient(portrait_buf.getvalue())
+    assert portrait_cropped is False
+
+
+def test_anti_hallucination_product_leg_lock_and_indonesian_avatar_lock():
+    # 1. Default @me avatar mention with generic creator phrases rewritten & idempotent on re-run
+    avatar_prof = TalentSavedProfile(
+        talent_presence=TalentPresence.AVATAR_MALE_ID,
+        avatar_flow_tag="",
+        visual_notes="Kaos polos hitam rapi",
+    )
+    raw = build_offline_demo_blueprint(avatar_prof, scene_count=3)
+    raw.flow_setup.exact_product_geometry_lock_en = (
+        "Beige TrailTop bucket chair with tan-painted cross-brace tubular legs, "
+        "vertical rear support posts, and black plastic foot caps."
+    )
+    raw.scenes[0].flow_prompt_en = (
+        "A Caucasian man is unfolding the beige TrailTop chair on the grass."
+    )
+    raw.scenes[1].flow_prompt_en = (
+        "Medium shot as the creator stands beside the chair and talent points at the seat."
+    )
+    raw.scenes[2].flow_prompt_en = (
+        "Wide shot next to the folded chair on the lawn."
+    )
+
+    enforced = enforce_commercial_mechanisms(
+        raw,
+        is_faceless=False,
+        platform_mode=PlatformMode.SHOPEE,
+        profile=avatar_prof,
+    )
+    # Re-applying (as happens during regenerate_hook) must stay clean & idempotent
+    enforced_twice = enforce_commercial_mechanisms(
+        enforced,
+        is_faceless=False,
+        platform_mode=PlatformMode.SHOPEE,
+        profile=avatar_prof,
+    )
+
+    for s in enforced_twice.scenes:
+        p = s.flow_prompt_en
+        # Exact product geometry & anti-redesign leg lock present in EVERY scene
+        assert "STRICT PRODUCT LOCK" in p
+        assert "tan-painted cross-brace tubular legs" in p
+        assert "do NOT redesign legs" in p
+        # Folding / unfolding deformations are sanitized out of scene actions
+        assert "unfolding the beige" not in p.lower()
+        assert "next to the folded chair" not in p.lower()
+        # Google Flow @me Avatar + Native Indonesian lock (standalone @me, never (@me))
+        assert "INDONESIAN AVATAR LOCK" in p
+        assert " @me " in p
+        assert "(@me)" not in p
+        assert "authentic native Indonesian man" in p
+        assert "strictly NO Western, NO Caucasian" in p
+        assert "caucasian man" not in p.lower()
+
+    assert "@me stands beside" in enforced_twice.scenes[1].flow_prompt_en
+    assert "@me points at" in enforced_twice.scenes[1].flow_prompt_en
+
+    # 2. Tag with extra traits: "@me, berkacamata, kaos hitam"
+    traits_prof = TalentSavedProfile(
+        talent_presence=TalentPresence.AVATAR_MALE_ID,
+        avatar_flow_tag="@me, berkacamata, kaos hitam",
+    )
+    raw_traits = build_offline_demo_blueprint(traits_prof, scene_count=3)
+    enforced_traits = enforce_commercial_mechanisms(
+        raw_traits,
+        is_faceless=False,
+        platform_mode=PlatformMode.SHOPEE,
+        profile=traits_prof,
+    )
+    for s in enforced_traits.scenes:
+        p = s.flow_prompt_en
+        assert " @me " in p
+        assert "(@me)" not in p
+        assert "berkacamata, kaos hitam" in p
 
 
 def test_enforces_visual_bible_specific_flow_actions_and_platform_terms():

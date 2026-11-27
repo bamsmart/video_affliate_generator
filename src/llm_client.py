@@ -135,7 +135,7 @@ class OpenRouterClient:
         kwargs: dict[str, Any] = {
             "model": model,
             "messages": messages,
-            "temperature": 0.6,
+            "temperature": 0.3,
         }
         if fallback_models:
             kwargs["extra_body"] = {"models": fallback_models}
@@ -224,7 +224,7 @@ class GeminiClient:
         kwargs: dict[str, Any] = {
             "model": model,
             "messages": messages,
-            "temperature": 0.6,
+            "temperature": 0.3,
         }
         if use_json_format:
             kwargs["response_format"] = {"type": "json_object"}
@@ -252,6 +252,7 @@ class GeminiClient:
         """Call Gemini models and fail fast on quota exhaustion so router can fall back."""
         candidates = [primary_model] + [m for m in (fallback_models or []) if m != primary_model]
         last_error: Exception | None = None
+        quota_error: Exception | None = None
 
         for current_model in candidates:
             use_json_format = True
@@ -276,12 +277,16 @@ class GeminiClient:
                         use_json_format = False
                         continue
                     if self._is_quota_error(err_str):
+                        quota_error = quota_error or exc
                         # Fail fast to next Gemini model or OpenRouter without long sleep
+                        break
+                    if "404" in err_str or "not found" in err_str.lower():
                         break
                     if attempt < self.max_retries:
                         time.sleep(1.0)
 
-        safe_msg = redact_secrets(str(last_error or "Unknown Gemini error"), [self.api_key])
+        chosen_err = quota_error or last_error
+        safe_msg = redact_secrets(str(chosen_err or "Unknown Gemini error"), [self.api_key])
         raise LLMClientError(f"Gemini gagal / limit tercapai: {safe_msg}")
 
 

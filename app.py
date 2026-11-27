@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hmac
-import re
 from pathlib import Path
 
 import streamlit as st
@@ -29,13 +28,11 @@ from src.schemas import (
     TalentSavedProfile,
 )
 from src.service import generate_blueprint_service, regenerate_hook_service
-from src.talent_store import (
-    load_preset_collection,
-    load_talent_profile,
-    save_talent_profile,
-    set_active_preset,
-)
+from src.talent_store import load_talent_profile, save_talent_profile
 from src.voiceover import synthesize_vo_mp3
+
+MAX_UPLOAD_IMAGES = 4
+MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
 # Mobile-first centered layout works cleanly on smartphone screens AND desktop browsers
 st.set_page_config(
@@ -102,7 +99,6 @@ if "generated_vo_mp3" not in st.session_state:
 if "generated_vo_srt" not in st.session_state:
     st.session_state["generated_vo_srt"] = None
 
-preset_collection = load_preset_collection(profile_dir)
 current_profile: TalentSavedProfile = st.session_state["talent_profile"]
 
 # ── Sidebar: Global Settings + Project History Loader ─────────────────────────
@@ -152,13 +148,22 @@ with st.sidebar:
         st.caption(f"Gemini utama: **{gem_stat}** · Fallback OpenRouter: **{or_stat}**")
         if not active_gemini_key and not active_or_key:
             st.warning(
-                "Isi GEMINI_API_KEY atau OPENROUTER_API_KEY di Secrets / .env.",
+                "GitHub tidak membawa file `.env` demi keamanan. Tempelkan API key Anda satu kali di **share.streamlit.io -> Settings -> Secrets**.",
                 title="API key belum terdeteksi",
                 icon=":material/warning:",
             )
+            with st.expander("Cara aktifkan API key permanen", icon=":material/help:"):
+                st.markdown(
+                    "1. Ambil gratis **Gemini key** di [Google AI Studio](https://aistudio.google.com/apikey) "
+                    "dan **OpenRouter key** di [OpenRouter Keys](https://openrouter.ai/keys).\n"
+                    "2. Buka dashboard [Streamlit Cloud](https://share.streamlit.io) -> klik `⋮` pada app -> **Settings** -> **Secrets**.\n"
+                    "3. Tempelkan dengan tanda kutip:\n"
+                    '```toml\nGEMINI_API_KEY = "AIza..."\nOPENROUTER_API_KEY = "sk-or-v1-..."\n```\n'
+                    "4. Klik **Save** (tersimpan otomatis selamanya setiap `git push`)."
+                )
     elif not active_or_key:
         st.warning(
-            "Isi OPENROUTER_API_KEY di Secrets / .env terlebih dahulu.",
+            "Isi OPENROUTER_API_KEY di Streamlit Cloud (Settings -> Secrets) atau `.env` lokal.",
             title="API key belum terdeteksi",
             icon=":material/warning:",
         )
@@ -234,140 +239,65 @@ st.caption(
     "Buka langsung di HP -> Upload screenshot produk -> Salin prompt ke Google Flow & finishing di CapCut"
 )
 
-# ── Preferensi Karakter & Gaya Narasi (Terlipat Rapi) ─────────────────────────
-with st.expander(
-    f"Gaya aktif: {current_profile.talent_presence.value} · {current_profile.persona.value}",
-    expanded=False,
-    icon=":material/tune:",
-):
-    preset_ids = [p.preset_id for p in preset_collection.presets] + ["__new__"]
-    preset_names_map = {p.preset_id: p.talent_name for p in preset_collection.presets}
-    preset_names_map["__new__"] = "+ Simpan sebagai preset baru"
-
-    current_idx = (
-        preset_ids.index(current_profile.preset_id)
-        if current_profile.preset_id in preset_ids
-        else 0
-    )
-    chosen_preset_id = st.selectbox(
-        "Preset cepat",
-        options=preset_ids,
-        index=current_idx,
-        format_func=lambda pid: preset_names_map.get(pid, pid),
-        key="select_talent_preset",
-    )
-
-    if chosen_preset_id != "__new__" and chosen_preset_id != current_profile.preset_id:
-        switched = set_active_preset(chosen_preset_id, profile_dir)
-        st.session_state["talent_profile"] = switched
-        st.rerun()
-
-    editing_profile = (
-        TalentSavedProfile(
-            preset_id="custom_talent",
-            talent_name="Preset Baru",
-        )
-        if chosen_preset_id == "__new__"
-        else current_profile
-    )
-
-    presence_options = [tp.value for tp in TalentPresence]
-    selected_presence_val = st.segmented_control(
-        "Tipe subjek di video Google Flow",
-        options=presence_options,
-        default=editing_profile.talent_presence.value,
-        required=True,
-        wrap=True,
-        key="presence_select",
-    )
-    persona_options = [p.value for p in PersonaStyle]
-    selected_persona_val = st.segmented_control(
-        "Gaya bicara naskah VO",
-        options=persona_options,
-        default=editing_profile.persona.value,
-        required=True,
-        wrap=True,
-        key="persona_select",
-    )
-    t_name = st.text_input(
-        "Nama preset",
-        value=editing_profile.talent_name,
-        key="input_talent_name",
-    )
-    t_notes = st.text_input(
-        "Detail outfit / gaya visual singkat (opsional)",
-        value=editing_profile.visual_notes,
-        placeholder="Contoh: Kemeja linen warna netral rapi",
-        key="input_talent_notes",
-    )
-    loc_options = [m.value for m in LocationLockMode]
-    selected_loc_mode = st.segmented_control(
-        "Lokasi di Visual Bible",
-        options=loc_options,
-        default=editing_profile.location_mode.value,
-        required=True,
-        wrap=True,
-        key="location_mode_select",
-    )
-    custom_loc_val = editing_profile.custom_location
-    if selected_loc_mode == LocationLockMode.LOCKED_CUSTOM.value:
-        custom_loc_val = st.text_input(
-            "Deskripsi lokasi tetap",
-            value=editing_profile.custom_location,
-            placeholder="Contoh: Ruang tamu minimalis hangat cahaya pagi",
-            key="input_custom_location",
-        )
-
-    if st.button(
-        "Simpan preferensi",
-        type="primary",
-        icon=":material/save:",
-        width="stretch",
-        key="btn_save_talent",
-    ):
-        target_pid = (
-            re.sub(r"[^a-z0-9]+", "_", t_name.lower()).strip("_") or "custom_talent"
-            if chosen_preset_id == "__new__"
-            else editing_profile.preset_id
-        )
-        new_prof = editing_profile.model_copy(
-            update={
-                "preset_id": target_pid,
-                "talent_name": t_name.strip() or "Preset Utama",
-                "talent_presence": TalentPresence(
-                    selected_presence_val or TalentPresence.FACELESS_BROLL.value
-                ),
-                "persona": PersonaStyle(selected_persona_val or PersonaStyle.SANTAI.value),
-                "visual_notes": t_notes.strip(),
-                "location_mode": LocationLockMode(
-                    selected_loc_mode or LocationLockMode.AUTO_CONTEXTUAL.value
-                ),
-                "custom_location": custom_loc_val.strip(),
-            }
-        )
-        saved_prof = save_talent_profile(new_prof, profile_dir)
-        st.session_state["talent_profile"] = saved_prof
-        st.toast(f"Preferensi '{saved_prof.talent_name}' diaktifkan.")
-        st.rerun()
-
 # ── Mobile-First Single-Column Input Card ────────────────────────────────────
 with st.container(border=True):
     st.subheader("Buat blueprint produk baru")
 
     product_files = st.file_uploader(
-        "Upload screenshot halaman produk dari galeri HP",
+        "Upload foto produk utuh / screenshot halaman produk dari HP",
         type=["png", "jpg", "jpeg", "webp"],
         accept_multiple_files=True,
         key="product_uploader",
     )
+    valid_uploads: list[tuple[str, bytes]] = []
     if product_files:
-        prev_cols = st.columns(min(3, len(product_files)))
-        for idx, pf in enumerate(product_files[:3]):
-            prev_cols[idx].image(
-                pf.getvalue(),
-                width=110,
-                alt=f"Gambar produk unggahan {idx + 1}",
+        if len(product_files) > MAX_UPLOAD_IMAGES:
+            st.warning(
+                f"Maksimal {MAX_UPLOAD_IMAGES} gambar produk yang diproses sekaligus.",
+                title="Batas jumlah gambar",
+                icon=":material/photo_library:",
             )
+        for pf in product_files[:MAX_UPLOAD_IMAGES]:
+            data = pf.getvalue()
+            if len(data) > MAX_IMAGE_BYTES:
+                st.warning(
+                    f"File `{pf.name}` melebihi 10 MB dan dilewati.",
+                    title="Ukuran file terlalu besar",
+                    icon=":material/warning:",
+                )
+                continue
+            valid_uploads.append((pf.name, data))
+
+        if valid_uploads:
+            prev_cols = st.columns(min(3, len(valid_uploads)))
+            for idx, (_, img_data) in enumerate(valid_uploads[:3]):
+                try:
+                    prev_cols[idx].image(
+                        img_data,
+                        width=110,
+                        alt=f"Gambar produk unggahan {idx + 1}",
+                    )
+                except Exception:
+                    prev_cols[idx].caption("Pratinjau tidak tersedia")
+
+    presence_options = [tp.value for tp in TalentPresence]
+    quick_presence_val = st.segmented_control(
+        "Subjek / Avatar Google Flow (khas Indonesia)",
+        options=presence_options,
+        default=current_profile.talent_presence.value,
+        required=True,
+        wrap=True,
+        key="quick_presence_select",
+    )
+
+    avatar_tag_val = current_profile.avatar_flow_tag or "@me"
+    if quick_presence_val != TalentPresence.FACELESS_BROLL.value:
+        avatar_tag_val = st.text_input(
+            "Tag Avatar Google Flow (default @me) & ciri tambahan (opsional)",
+            value=current_profile.avatar_flow_tag or "@me",
+            placeholder="@me (bisa tambah ciri seperti: @me, berkacamata, kaos hitam)",
+            key="input_avatar_flow_tag",
+        )
 
     duration_preset = st.segmented_control(
         "Durasi & kedalaman ulasan",
@@ -397,6 +327,40 @@ with st.container(border=True):
         key="platform_mode_select",
     )
 
+    with st.expander("Pengaturan lanjutan gaya bicara VO & lokasi (opsional)", icon=":material/tune:"):
+        persona_options = [p.value for p in PersonaStyle]
+        selected_persona_val = st.segmented_control(
+            "Gaya bicara naskah VO",
+            options=persona_options,
+            default=current_profile.persona.value,
+            required=True,
+            wrap=True,
+            key="persona_select",
+        )
+        t_notes = st.text_input(
+            "Detail outfit konsisten di semua scene (opsional)",
+            value=current_profile.visual_notes,
+            placeholder="Contoh: Kemeja kasual warna earth-tone rapi",
+            key="input_talent_notes",
+        )
+        loc_options = [m.value for m in LocationLockMode]
+        selected_loc_mode = st.segmented_control(
+            "Lokasi di Visual Bible",
+            options=loc_options,
+            default=current_profile.location_mode.value,
+            required=True,
+            wrap=True,
+            key="location_mode_select",
+        )
+        custom_loc_val = current_profile.custom_location
+        if selected_loc_mode == LocationLockMode.LOCKED_CUSTOM.value:
+            custom_loc_val = st.text_input(
+                "Deskripsi lokasi tetap",
+                value=current_profile.custom_location,
+                placeholder="Contoh: Teras rumah Indonesia sore hari yang hangat",
+                key="input_custom_location",
+            )
+
     with st.expander("Tambah detail spek / link website produk (opsional — hasil lebih dalam)", icon=":material/fact_check:"):
         product_url = st.text_input(
             "Link website resmi brand / artikel review produk",
@@ -425,8 +389,30 @@ with st.container(border=True):
 
 active_platform_mode = PlatformMode(selected_platform_str or PlatformMode.SHOPEE.value)
 
+# Sync live character & avatar settings directly so user never forgets a separate Save button
+live_profile = current_profile.model_copy(
+    update={
+        "talent_presence": TalentPresence(
+            quick_presence_val or TalentPresence.AVATAR_MALE_ID.value
+        ),
+        "talent_name": quick_presence_val or current_profile.talent_name,
+        "avatar_flow_tag": (
+            (avatar_tag_val.strip() or "@me")
+            if quick_presence_val != TalentPresence.FACELESS_BROLL.value
+            else ""
+        ),
+        "persona": PersonaStyle(selected_persona_val or PersonaStyle.SANTAI.value),
+        "visual_notes": t_notes.strip(),
+        "location_mode": LocationLockMode(
+            selected_loc_mode or LocationLockMode.AUTO_CONTEXTUAL.value
+        ),
+        "custom_location": custom_loc_val.strip(),
+    }
+)
+st.session_state["talent_profile"] = live_profile
+
 if generate_clicked:
-    raw_images = [f.getvalue() for f in (product_files or [])]
+    raw_images = [img_data for _, img_data in valid_uploads]
     has_any_text = bool(extra_note.strip() or product_url.strip() or raw_specs_text.strip())
     if not raw_images and not has_any_text and engine_mode != "offline_demo":
         st.warning(
@@ -435,8 +421,10 @@ if generate_clicked:
             icon=":material/upload_file:",
         )
     else:
-        with st.spinner("Mengumpulkan product knowledge mendalam & merancang blueprint..."):
+        with st.spinner("Mengunci anatomi produk 1:1, identitas Avatar Indonesia & menyusun blueprint..."):
             try:
+                saved_prof = save_talent_profile(live_profile, profile_dir)
+                st.session_state["talent_profile"] = saved_prof
                 st.session_state["cached_product_images"] = raw_images
                 st.session_state["generated_vo_mp3"] = None
                 st.session_state["generated_vo_srt"] = None
@@ -631,10 +619,18 @@ if record_obj is not None and comp_obj is not None:
 
     # ── STEP 1 CARD: Setup Google Flow ───────────────────────────────────────
     with st.container(border=True):
-        st.subheader("Step 1 — Setup Google Flow (Ingredients)")
+        st.subheader("Step 1 — Setup Google Flow (Ingredients anti-halu)")
         st.markdown(
             f":green-badge[:material/aspect_ratio: Rasio {fs.aspect_ratio}] "
-            ":blue-badge[:material/collections: Simpan & upload foto bersih ke Flow]"
+            ":orange-badge[:material/view_in_ar: Kunci Geometri Produk 1:1] "
+            ":blue-badge[:material/face: Kunci Avatar Indonesia]"
+        )
+        st.info(
+            "Agar Google Flow **tidak mengarang bentuk kaki/bodi produk baru** dan **tetap memakai wajah Indonesia dari Avatar `@me` Anda**:\n"
+            "1. Pastikan foto produk yang dimasukkan ke **Ingredients** menampilkan **ujung kaki/bagian bawah produk secara utuh** (tidak terpotong).\n"
+            "2. Setiap prompt sudah otomatis menggunakan **`@me`** untuk memanggil Avatar wajah Anda di Google Flow. Pastikan Foto Produk Bersih juga terpasang di **Ingredients / Asset** saat klik **New Scene** maupun **Jump to**.",
+            title="Kunci wajib di Google Flow",
+            icon=":material/verified:",
         )
         for item in fs.ingredients_checklist:
             st.markdown(f"- {item}")
@@ -650,8 +646,8 @@ if record_obj is not None and comp_obj is not None:
             crop_bytes = cropped_path.read_bytes()
             st.image(
                 crop_bytes,
-                width=180,
-                caption="Foto produk bersih (bebas bar UI Shopee)",
+                width=200,
+                caption="Cek gambar ini: pastikan kaki/ujung bawah produk terlihat UTUH",
                 alt="Foto produk bersih hasil crop",
             )
             st.download_button(
@@ -665,19 +661,19 @@ if record_obj is not None and comp_obj is not None:
             )
 
         if has_raw_upload:
-            with st.expander("Atur ulang batas potong screenshot (opsional)", icon=":material/crop:"):
+            with st.expander("Kaki/bawah produk terpotong? Atur batas crop di sini", icon=":material/crop:"):
                 top_crop = st.slider(
                     "Potong bar atas (%)",
                     min_value=0,
                     max_value=30,
-                    value=11,
+                    value=8,
                     key="slider_crop_top",
                 )
                 bot_crop = st.slider(
-                    "Potong bar bawah (%)",
+                    "Potong bar bawah (% — geser ke 0% jika foto bukan screenshot)",
                     min_value=0,
                     max_value=50,
-                    value=34,
+                    value=24,
                     key="slider_crop_bot",
                 )
                 if st.button(
@@ -697,7 +693,10 @@ if record_obj is not None and comp_obj is not None:
                     st.session_state["record"] = record_obj
                     st.rerun()
 
-        with st.expander("Lihat locked visual bible (otomatis masuk ke tiap scene)", icon=":material/lock:"):
+        with st.expander("Lihat kunci geometri produk & visual bible (otomatis masuk ke tiap scene)", icon=":material/lock:"):
+            st.markdown("**Exact Product Geometry Lock:**")
+            st.code(fs.exact_product_geometry_lock_en, language="text")
+            st.markdown("**Locked Visual Bible:**")
             st.code(fs.locked_visual_bible_en, language="text")
 
     # ── STEP 2..N+1 CARDS: Per-Scene Google Flow Prompts (Thumb-Friendly) ────

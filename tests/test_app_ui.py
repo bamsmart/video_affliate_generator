@@ -23,6 +23,9 @@ def test_app_has_only_product_uploader_and_supports_deep_7_scene_product_knowled
     at.selectbox(key="engine_mode").select("offline_demo").run()
     assert not at.exception
 
+    # Default avatar tag is Google Flow's native @me mention
+    assert at.text_input(key="input_avatar_flow_tag").value == "@me"
+
     tall_img = io.BytesIO()
     Image.new("RGB", (540, 1200), (235, 225, 215)).save(tall_img, format="PNG")
     at.file_uploader(key="product_uploader").upload("shopee_screen.png", tall_img.getvalue()).run()
@@ -34,6 +37,12 @@ def test_app_has_only_product_uploader_and_supports_deep_7_scene_product_knowled
     record_3 = at.session_state["record"]
     assert record_3 is not None
     assert len(record_3.blueprint.scenes) == 3
+    for sc in record_3.blueprint.scenes:
+        assert "STRICT PRODUCT LOCK" in sc.flow_prompt_en
+        assert "INDONESIAN AVATAR LOCK" in sc.flow_prompt_en
+        assert " @me " in sc.flow_prompt_en
+        assert "(@me)" not in sc.flow_prompt_en
+        assert "strictly NO Western, NO Caucasian" in sc.flow_prompt_en
     assert len(record_3.blueprint.product_knowledge.technical_specs_and_materials) >= 3
     assert "📌" in record_3.blueprint.product_knowledge.pinned_comment_faq_id
     assert "Deskripsi/Spesifikasi Toko" in record_3.knowledge_sources

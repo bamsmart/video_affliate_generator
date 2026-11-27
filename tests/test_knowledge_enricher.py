@@ -52,6 +52,20 @@ def test_invalid_url_handled_gracefully():
     assert "tidak valid" in msg.lower()
 
 
+def test_ssrf_private_and_metadata_urls_are_blocked():
+    blocked_urls = [
+        "http://127.0.0.1:8501",
+        "http://localhost/admin",
+        "http://169.254.169.254/latest/meta-data/",
+        "http://192.168.1.1/",
+        "https://user:pass@example.com/product",
+    ]
+    for target in blocked_urls:
+        txt, msg = fetch_url_product_knowledge(target)
+        assert txt == ""
+        assert "ditolak" in msg.lower()
+
+
 def test_gather_context_combines_pasted_specs_without_network():
     ctx = gather_product_knowledge_context(
         product_url="",

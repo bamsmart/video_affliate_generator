@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import os
 import re
-import shutil
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -14,23 +12,6 @@ from dotenv import load_dotenv
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG_PATH = REPO_ROOT / "config.yaml"
-
-
-def resolve_binary(name: str) -> str:
-    """Resolve an executable binary from .venv/bin, current Python bin, or system PATH."""
-    venv_candidate = REPO_ROOT / ".venv" / "bin" / name
-    if venv_candidate.is_file() and os.access(venv_candidate, os.X_OK):
-        return str(venv_candidate)
-
-    exe_candidate = Path(sys.executable).parent / name
-    if exe_candidate.is_file() and os.access(exe_candidate, os.X_OK):
-        return str(exe_candidate)
-
-    which_path = shutil.which(name)
-    if which_path:
-        return which_path
-
-    return name
 
 
 def load_config(path: str | Path | None = None) -> dict[str, Any]:
@@ -42,23 +23,70 @@ def load_config(path: str | Path | None = None) -> dict[str, Any]:
     return data
 
 
+def _clean_secret_value(raw: Any) -> str:
+    """Normalize secret strings and strip accidental extra wrapping quotes."""
+    if raw is None:
+        return ""
+    text = str(raw).strip()
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in ('"', "'"):
+        text = text[1:-1].strip()
+    return text
+
+
 def get_secret_or_env(key: str, default: str = "") -> str:
     """Read a setting from environment/.env first, falling back safely to st.secrets on Cloud."""
     load_dotenv(override=False)
-    env_val = os.getenv(key, "").strip()
+    env_val = _clean_secret_value(os.getenv(key, ""))
     if env_val:
         return env_val
+
+    # Case-insensitive env check
+    target_lower = key.lower()
+    for env_k, env_v in os.environ.items():
+        if env_k.lower() == target_lower:
+            cleaned = _clean_secret_value(env_v)
+            if cleaned:
+                return cleaned
 
     try:
         import streamlit as st
 
-        val = st.secrets.get(key, "")
-        if val is not None and str(val).strip():
-            return str(val).strip()
+        secrets_dict = st.secrets.to_dict() if hasattr(st.secrets, "to_dict") else dict(st.secrets)
+        # 1. Exact top-level lookup
+        if key in secrets_dict:
+            cleaned = _clean_secret_value(secrets_dict[key])
+            if cleaned:
+                return cleaned
+        # 2. Case-insensitive top-level or nested TOML section lookup ([secrets], [default], etc.)
+        for k, v in secrets_dict.items():
+            if isinstance(v, dict):
+                for sub_k, sub_v in v.items():
+                    if str(sub_k).lower() == target_lower:
+                        cleaned = _clean_secret_value(sub_v)
+                        if cleaned:
+                            return cleaned
+            elif str(k).lower() == target_lower:
+                cleaned = _clean_secret_value(v)
+                if cleaned:
+                    return cleaned
     except Exception:
         pass
 
     return default
+
+
+def format_env_as_streamlit_toml(values: dict[str, str]) -> str:
+    """Format key-value pairs into valid Streamlit Cloud Secrets TOML."""
+    ordered_keys = ["GEMINI_API_KEY", "GEMINI_MODEL", "OPENROUTER_API_KEY", "APP_PIN"]
+    lines = ["# Tempelkan (Paste) seluruh isi ini ke Streamlit Cloud -> Settings -> Secrets"]
+    for k in ordered_keys:
+        val = _clean_secret_value(values.get(k, ""))
+        if k == "GEMINI_MODEL" and not val:
+            val = "gemini-2.5-flash"
+        if val:
+            escaped = val.replace("\\", "\\\\").replace('"', '\\"')
+            lines.append(f'{k} = "{escaped}"')
+    return "\n".join(lines) + "\n"
 
 
 def get_gemini_api_key(override_key: str | None = None) -> str:

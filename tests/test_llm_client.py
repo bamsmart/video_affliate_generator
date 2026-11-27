@@ -2,10 +2,35 @@
 
 from types import SimpleNamespace
 
-from src.config import redact_secrets
+from src.config import format_env_as_streamlit_toml, get_secret_or_env, redact_secrets
 from src.llm_client import GeminiClient, HybridLLMRouter, OpenRouterClient, extract_json_object
 from src.prompts import build_offline_demo_blueprint
 from src.schemas import BlueprintResponse, TalentSavedProfile
+
+
+def test_format_env_as_streamlit_toml_and_nested_secrets(monkeypatch):
+    toml_str = format_env_as_streamlit_toml(
+        {
+            "GEMINI_API_KEY": "AIzaSyTest123",
+            "OPENROUTER_API_KEY": '"sk-or-v1-abc"',
+            "APP_PIN": "9988",
+        }
+    )
+    assert 'GEMINI_API_KEY = "AIzaSyTest123"' in toml_str
+    assert 'OPENROUTER_API_KEY = "sk-or-v1-abc"' in toml_str
+    assert 'GEMINI_MODEL = "gemini-2.5-flash"' in toml_str
+    assert 'APP_PIN = "9988"' in toml_str
+
+    import streamlit as st
+
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.setattr("src.config.load_dotenv", lambda override=False: False)
+    monkeypatch.setattr(
+        st,
+        "secrets",
+        SimpleNamespace(to_dict=lambda: {"secrets": {"gemini_api_key": '"AIzaNestedKey999"'}}),
+    )
+    assert get_secret_or_env("GEMINI_API_KEY") == "AIzaNestedKey999"
 
 
 def test_extract_json_handles_fences_and_prose():

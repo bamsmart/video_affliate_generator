@@ -77,6 +77,11 @@ def render_blueprint_markdown(
     lines.extend(
         [
             "",
+            "**Exact Product Geometry Lock (Anti-Halu Bentuk & Kaki Produk):**",
+            "```text",
+            fs.exact_product_geometry_lock_en,
+            "```",
+            "",
             "**Locked Visual Bible (Sudah otomatis disuntikkan ke setiap prompt scene):**",
             "```text",
             fs.locked_visual_bible_en,

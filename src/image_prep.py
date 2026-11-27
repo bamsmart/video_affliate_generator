@@ -9,25 +9,24 @@ from PIL import Image
 
 
 def is_mobile_screenshot(img_bytes: bytes) -> bool:
-    """Return True when image aspect ratio matches a vertical phone screenshot (H/W >= 1.65)."""
+    """Return True when image aspect ratio matches a full tall phone screen capture (H/W >= 1.92)."""
     with Image.open(io.BytesIO(img_bytes)) as im:
         w, h = im.size
         if w <= 0:
             return False
-        return (h / float(w)) >= 1.65
+        return (h / float(w)) >= 1.92
 
 
 def prepare_clean_product_ingredient(
     img_bytes: bytes,
-    top_crop_pct: float = 0.11,
-    bottom_crop_pct: float = 0.34,
+    top_crop_pct: float = 0.08,
+    bottom_crop_pct: float = 0.24,
 ) -> tuple[bytes, bool]:
-    """Crop out mobile status/search bars & bottom price/buy bars from tall Shopee screenshots.
+    """Safely trim mobile OS status bar & bottom buy bar without cutting off product legs/base.
 
-    On a typical Shopee mobile product screenshot (e.g. 1080x2400), the top ~11% holds the OS
-    status bar + search bar, the middle ~55% holds the 1:1 hero product gallery photo, and the
-    bottom ~34% holds price banners, vouchers, title text, and the 'Beli Sekarang' bar.
-    If the image is already a clean product photo (H/W < 1.65), it is normalized without cropping.
+    Standard 9:16 photos (H/W ~1.78) are preserved 100% intact so bottom product legs/parts
+    are never sliced off. Only ultra-tall phone screenshots (H/W >= 1.92, e.g. 20:9) are trimmed
+    conservatively (8% top, 24% bottom) to preserve full 1:1 and 3:4 product gallery frames.
     Returns `(jpeg_bytes, was_cropped)`.
     """
     with Image.open(io.BytesIO(img_bytes)) as im:
@@ -35,12 +34,12 @@ def prepare_clean_product_ingredient(
         w, h = rgb.size
         was_cropped = False
 
-        if w > 0 and (h / float(w)) >= 1.65:
+        if w > 0 and (h / float(w)) >= 1.92:
             t_pct = max(0.0, min(0.35, top_crop_pct))
             b_pct = max(0.0, min(0.55, bottom_crop_pct))
             top_px = int(round(h * t_pct))
             bottom_px = int(round(h * (1.0 - b_pct)))
-            if bottom_px - top_px >= int(w * 0.6):
+            if bottom_px - top_px >= int(w * 0.75):
                 rgb = rgb.crop((0, top_px, w, bottom_px))
                 was_cropped = True
 
@@ -53,8 +52,8 @@ def prepare_clean_product_ingredient(
 def save_clean_ingredient_image(
     img_bytes: bytes,
     output_dir: Path,
-    top_crop_pct: float = 0.11,
-    bottom_crop_pct: float = 0.34,
+    top_crop_pct: float = 0.08,
+    bottom_crop_pct: float = 0.24,
 ) -> tuple[Path, bool]:
     """Save `ingredient_produk_bersih.jpg` into output_dir and return `(path, was_cropped)`."""
     output_dir.mkdir(parents=True, exist_ok=True)

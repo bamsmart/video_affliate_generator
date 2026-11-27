@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -211,6 +210,7 @@ def generate_blueprint_service(
         raw_bp,
         is_faceless=profile.is_faceless,
         platform_mode=platform_mode,
+        profile=profile,
     )
 
     prod_name = final_bp.product_analysis.product_name
@@ -298,6 +298,7 @@ def regenerate_hook_service(
         payload=payload,
         is_faceless=profile.is_faceless,
         platform_mode=record.platform_mode,
+        profile=profile,
     )
     persisted_hooks = append_product_hook(
         product_name=prod_name,

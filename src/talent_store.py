@@ -21,35 +21,39 @@ PRESETS_FILENAME = "talent_presets.json"
 def _default_presets() -> list[TalentSavedProfile]:
     return [
         TalentSavedProfile(
+            preset_id="avatar_pria_id",
+            talent_name="Avatar Google Flow Saya (Pria Indonesia)",
+            talent_presence=TalentPresence.AVATAR_MALE_ID,
+            persona=PersonaStyle.SANTAI,
+            avatar_flow_tag="@me",
+            visual_notes="Pria asli Indonesia rapi dengan kemeja kasual / kaos polos warna netral",
+            location_mode=LocationLockMode.AUTO_CONTEXTUAL,
+        ),
+        TalentSavedProfile(
+            preset_id="avatar_wanita_id",
+            talent_name="Avatar Google Flow Saya (Wanita Indonesia)",
+            talent_presence=TalentPresence.AVATAR_FEMALE_ID,
+            persona=PersonaStyle.SANTAI,
+            avatar_flow_tag="@me",
+            visual_notes="Wanita asli Indonesia rapi dengan outfit kasual warna earth-tone",
+            location_mode=LocationLockMode.AUTO_CONTEXTUAL,
+        ),
+        TalentSavedProfile(
+            preset_id="avatar_hijab_id",
+            talent_name="Avatar Google Flow Saya (Hijab Indonesia)",
+            talent_presence=TalentPresence.AVATAR_HIJAB_ID,
+            persona=PersonaStyle.ANTUSIAS,
+            avatar_flow_tag="@me",
+            visual_notes="Wanita asli Indonesia berhijab pashmina rapi warna earth-tone",
+            location_mode=LocationLockMode.AUTO_CONTEXTUAL,
+        ),
+        TalentSavedProfile(
             preset_id="broll_produk",
-            talent_name="Fokus Produk / B-Roll (Wajah & Suara di CapCut)",
+            talent_name="Tanpa Wajah / Fokus Produk Saja",
             talent_presence=TalentPresence.FACELESS_BROLL,
             persona=PersonaStyle.SANTAI,
-            visual_notes="Fokus produk tajam dan interaksi tangan rapi tanpa wajah",
-            location_mode=LocationLockMode.AUTO_CONTEXTUAL,
-        ),
-        TalentSavedProfile(
-            preset_id="wanita_santai",
-            talent_name="Talent Wanita Kasual",
-            talent_presence=TalentPresence.FEMALE,
-            persona=PersonaStyle.SANTAI,
-            visual_notes="Wanita Indonesia muda rapi dengan outfit kasual warna netral",
-            location_mode=LocationLockMode.AUTO_CONTEXTUAL,
-        ),
-        TalentSavedProfile(
-            preset_id="wanita_hijab",
-            talent_name="Talent Wanita Berhijab",
-            talent_presence=TalentPresence.FEMALE_HIJAB,
-            persona=PersonaStyle.ANTUSIAS,
-            visual_notes="Wanita Indonesia berhijab pashmina rapi warna earth-tone",
-            location_mode=LocationLockMode.AUTO_CONTEXTUAL,
-        ),
-        TalentSavedProfile(
-            preset_id="pria_kasual",
-            talent_name="Talent Pria (Gadget / Outdoor)",
-            talent_presence=TalentPresence.MALE,
-            persona=PersonaStyle.SANTAI,
-            visual_notes="Pria Indonesia rapi kemeja kasual / kaos polos",
+            avatar_flow_tag="",
+            visual_notes="Fokus produk tajam dan interaksi tangan berkulit khas Indonesia tanpa menampilkan wajah",
             location_mode=LocationLockMode.AUTO_CONTEXTUAL,
         ),
     ]
@@ -65,10 +69,16 @@ def load_preset_collection(profile_dir: str | Path = "profile") -> TalentPresetC
                 presets_path.read_text(encoding="utf-8")
             )
             if col.presets:
+                normalized_presets = [
+                    p.model_copy(update={"avatar_flow_tag": "@me"})
+                    if (not p.is_faceless and not p.avatar_flow_tag.strip())
+                    else p
+                    for p in col.presets
+                ]
                 active = col.active_preset_id
-                if not any(p.preset_id == active for p in col.presets):
-                    active = col.presets[0].preset_id
-                return TalentPresetCollection(active_preset_id=active, presets=col.presets)
+                if not any(p.preset_id == active for p in normalized_presets):
+                    active = normalized_presets[0].preset_id
+                return TalentPresetCollection(active_preset_id=active, presets=normalized_presets)
         except Exception:
             pass
 

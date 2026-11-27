@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import re
+import socket
 import urllib.parse
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
@@ -11,6 +13,11 @@ from typing import Any
 
 import certifi
 import requests
+
+MAX_FETCH_BYTES = 512 * 1024  # 512 KB cap to prevent OOM DoS on Cloud
+MAX_REDIRECTS = 3
+_BLOCKED_HOSTNAMES = {"localhost", "metadata.google.internal"}
+_BLOCKED_SUFFIXES = (".localhost", ".local", ".internal")
 
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -167,8 +174,80 @@ def extract_structured_html_knowledge(html_text: str, max_chars: int = 3800) -> 
     return combined[: max_chars + 1200]
 
 
+def _is_disallowed_ip(ip_obj: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    return (
+        ip_obj.is_private
+        or ip_obj.is_loopback
+        or ip_obj.is_link_local
+        or ip_obj.is_multicast
+        or ip_obj.is_reserved
+        or ip_obj.is_unspecified
+    )
+
+
+def _validate_public_url(url: str) -> tuple[bool, str]:
+    """Validate scheme, absence of embedded credentials, and block private/loopback/metadata hosts."""
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc or not parsed.hostname:
+        return False, "Format URL tidak valid (gunakan awalan https://)."
+
+    if parsed.username or parsed.password:
+        return False, "URL dengan kredensial tersemat ditolak demi keamanan."
+
+    host = parsed.hostname.strip().lower().rstrip(".")
+    if host in _BLOCKED_HOSTNAMES or any(host.endswith(sfx) for sfx in _BLOCKED_SUFFIXES):
+        return False, "Akses ke alamat internal atau lokal ditolak demi keamanan."
+
+    # Check IP literals without needing DNS
+    try:
+        ip_lit = ipaddress.ip_address(host)
+    except ValueError:
+        ip_lit = None
+
+    if ip_lit is not None:
+        if _is_disallowed_ip(ip_lit):
+            return False, "Akses ke alamat IP privat atau lokal ditolak demi keamanan."
+        return True, ""
+
+    # Resolve hostname DNS and verify all returned A/AAAA records are public
+    try:
+        addr_infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        return False, f"Tidak dapat menjangkau {parsed.netloc} (host tidak ditemukan)."
+
+    for info in addr_infos:
+        ip_str = info[4][0].split("%", 1)[0]
+        try:
+            resolved_ip = ipaddress.ip_address(ip_str)
+        except ValueError:
+            continue
+        if _is_disallowed_ip(resolved_ip):
+            return False, "Akses ke alamat jaringan internal ditolak demi keamanan."
+
+    return True, ""
+
+
+def _read_bounded_text(resp: requests.Response, max_bytes: int = MAX_FETCH_BYTES) -> str:
+    chunks: list[bytes] = []
+    total = 0
+    for chunk in resp.iter_content(chunk_size=16384):
+        if not chunk:
+            continue
+        remaining = max_bytes - total
+        if remaining <= 0:
+            break
+        if len(chunk) > remaining:
+            chunks.append(chunk[:remaining])
+            break
+        chunks.append(chunk)
+        total += len(chunk)
+    raw_bytes = b"".join(chunks)
+    encoding = resp.encoding or resp.apparent_encoding or "utf-8"
+    return raw_bytes.decode(encoding, errors="replace")
+
+
 def fetch_url_product_knowledge(url: str, timeout_sec: float = 8.0) -> tuple[str, str]:
-    """Fetch public product/brand webpage knowledge safely without bypassing anti-bot gates.
+    """Fetch public product/brand webpage knowledge safely with SSRF, redirect, and size guards.
 
     Returns `(extracted_text, status_message)`.
     """
@@ -176,30 +255,64 @@ def fetch_url_product_knowledge(url: str, timeout_sec: float = 8.0) -> tuple[str
     if not clean_url:
         return "", ""
 
-    parsed = urllib.parse.urlparse(clean_url)
-    if parsed.scheme not in ("http", "https") or not parsed.netloc:
-        return "", "Format URL tidak valid (gunakan awalan https://)."
+    ok, err_msg = _validate_public_url(clean_url)
+    if not ok:
+        return "", err_msg
+
+    current_url = clean_url
+    parsed = urllib.parse.urlparse(current_url)
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8",
+    }
 
     try:
-        resp = requests.get(
-            clean_url,
-            headers={
-                "User-Agent": USER_AGENT,
-                "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8",
-            },
-            timeout=timeout_sec,
-            verify=certifi.where(),
-        )
-        if resp.status_code in (401, 403, 429):
-            return (
-                "",
-                f"Halaman ({parsed.netloc}) membatasi akses bot otomatis ({resp.status_code}). "
-                "Tips: Anda bisa copy-paste teks deskripsi produk langsung ke kolom Spesifikasi Toko.",
+        resp: requests.Response | None = None
+        for _ in range(MAX_REDIRECTS + 1):
+            resp = requests.get(
+                current_url,
+                headers=headers,
+                timeout=timeout_sec,
+                verify=certifi.where(),
+                allow_redirects=False,
+                stream=True,
             )
-        if resp.status_code >= 400:
-            return "", f"Gagal membaca URL ({resp.status_code})."
+            if 300 <= resp.status_code < 400 and resp.headers.get("Location"):
+                next_url = urllib.parse.urljoin(current_url, resp.headers["Location"])
+                resp.close()
+                ok_next, err_next = _validate_public_url(next_url)
+                if not ok_next:
+                    return "", err_next
+                current_url = next_url
+                parsed = urllib.parse.urlparse(current_url)
+                continue
+            break
 
-        extracted = extract_structured_html_knowledge(resp.text)
+        if resp is None:
+            return "", "Gagal membaca URL."
+
+        try:
+            if 300 <= resp.status_code < 400:
+                return "", "Terlalu banyak pengalihan (redirect) pada URL tersebut."
+
+            if resp.status_code in (401, 403, 429):
+                return (
+                    "",
+                    f"Halaman ({parsed.netloc}) membatasi akses bot otomatis ({resp.status_code}). "
+                    "Tips: Anda bisa copy-paste teks deskripsi produk langsung ke kolom Spesifikasi Toko.",
+                )
+            if resp.status_code >= 400:
+                return "", f"Gagal membaca URL ({resp.status_code})."
+
+            ctype = resp.headers.get("Content-Type", "").lower()
+            if ctype and not any(tok in ctype for tok in ("text/", "html", "xml", "json")):
+                return "", "Tipe konten URL bukan halaman teks/HTML."
+
+            html_text = _read_bounded_text(resp)
+        finally:
+            resp.close()
+
+        extracted = extract_structured_html_knowledge(html_text)
         if len(extracted) < 80:
             return (
                 "",

@@ -15,10 +15,23 @@ class PersonaStyle(str, Enum):
 
 
 class TalentPresence(str, Enum):
+    AVATAR_MALE_ID = "Avatar Saya (Pria Indonesia)"
+    AVATAR_FEMALE_ID = "Avatar Saya (Wanita Indonesia)"
+    AVATAR_HIJAB_ID = "Avatar Saya (Hijab Indonesia)"
     FACELESS_BROLL = "Tanpa Wajah (Fokus Produk)"
-    FEMALE = "Wanita"
-    FEMALE_HIJAB = "Wanita Berhijab"
-    MALE = "Pria"
+
+    # Backward-compatible Python aliases
+    MALE = "Avatar Saya (Pria Indonesia)"
+    FEMALE = "Avatar Saya (Wanita Indonesia)"
+    FEMALE_HIJAB = "Avatar Saya (Hijab Indonesia)"
+
+
+_LEGACY_PRESENCE_MAP: dict[str, str] = {
+    "Pria": TalentPresence.AVATAR_MALE_ID.value,
+    "Wanita": TalentPresence.AVATAR_FEMALE_ID.value,
+    "Wanita Berhijab": TalentPresence.AVATAR_HIJAB_ID.value,
+    "Tanpa Wajah (Fokus Produk)": TalentPresence.FACELESS_BROLL.value,
+}
 
 
 class LocationLockMode(str, Enum):
@@ -33,15 +46,19 @@ class PlatformMode(str, Enum):
 
 
 class TalentSavedProfile(BaseModel):
-    """Lightweight text-only character & speaking style preset (zero photo/voice upload needed)."""
+    """Lightweight text-only Google Flow Avatar & speaking style preset (zero photo/voice upload in app)."""
 
-    preset_id: str = Field(default="broll_produk")
-    talent_name: str = Field(default="Fokus Produk / B-Roll (Wajah & Suara di CapCut)")
-    talent_presence: TalentPresence = Field(default=TalentPresence.FACELESS_BROLL)
+    preset_id: str = Field(default="avatar_pria_id")
+    talent_name: str = Field(default="Avatar Google Flow Saya (Pria Indonesia)")
+    talent_presence: TalentPresence = Field(default=TalentPresence.AVATAR_MALE_ID)
     persona: PersonaStyle = Field(default=PersonaStyle.SANTAI)
+    avatar_flow_tag: str = Field(
+        default="@me",
+        description="Tag avatar Google Flow (default '@me', bisa ditambah ciri singkat seperti '@me, berkacamata, kaos hitam').",
+    )
     visual_notes: str = Field(
         default="",
-        description="Catatan singkat outfit/tampilan opsional (contoh: lengan kemeja linen krem).",
+        description="Catatan singkat outfit/tampilan konsisten (contoh: kemeja kasual rapi warna earth-tone).",
     )
     location_mode: LocationLockMode = Field(default=LocationLockMode.AUTO_CONTEXTUAL)
     custom_location: str = Field(
@@ -53,11 +70,15 @@ class TalentSavedProfile(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def _migrate_legacy_fields(cls, data: Any) -> Any:
-        if isinstance(data, dict) and "talent_presence" not in data:
-            if data.get("is_faceless") is True:
-                data = {**data, "talent_presence": TalentPresence.FACELESS_BROLL.value}
-            elif data.get("is_faceless") is False:
-                data = {**data, "talent_presence": TalentPresence.FEMALE.value}
+        if isinstance(data, dict):
+            raw_tp = data.get("talent_presence")
+            if raw_tp in _LEGACY_PRESENCE_MAP:
+                data = {**data, "talent_presence": _LEGACY_PRESENCE_MAP[raw_tp]}
+            elif "talent_presence" not in data:
+                if data.get("is_faceless") is True:
+                    data = {**data, "talent_presence": TalentPresence.FACELESS_BROLL.value}
+                elif data.get("is_faceless") is False:
+                    data = {**data, "talent_presence": TalentPresence.AVATAR_FEMALE_ID.value}
         return data
 
     @property
@@ -66,7 +87,7 @@ class TalentSavedProfile(BaseModel):
 
 
 class TalentPresetCollection(BaseModel):
-    active_preset_id: str = Field(default="broll_produk")
+    active_preset_id: str = Field(default="avatar_pria_id")
     presets: list[TalentSavedProfile] = Field(default_factory=list)
 
 
@@ -161,12 +182,25 @@ class FlowSetup(BaseModel):
         default="9:16",
         description="Rasio aspek video vertikal, selalu '9:16'.",
     )
+    exact_product_geometry_lock_en: str = Field(
+        default=(
+            "Exact 1:1 physical geometry, silhouette, frame/base/bottle proportions, "
+            "surface colors, joint details, and printed logo strictly matching the uploaded Product Ingredient image without any invented or altered parts."
+        ),
+        min_length=1,
+        description=(
+            "Deskripsi forensik Bahasa Inggris yang merinci BENTUK FISIK PERSIS yang terlihat nyata di foto produk "
+            "(struktur kaki/rangka/botol/kemasan, warna tiap komponen/tiang/kaki, sambungan, proporsi, posisi & teks logo) "
+            "serta larangan keras mengubah bentuk kaki/struktur atau mengarang bagian yang tidak ada di foto."
+        ),
+    )
     locked_visual_bible_en: str = Field(
         ...,
         min_length=1,
         description=(
             "Satu paragraf Bahasa Inggris yang mengunci 1 lokasi konsisten, pencahayaan, color grading, "
-            "lensa kamera, gaya visual subjek, dan kemiripan 100% bentuk produk terhadap Ingredients."
+            "lensa kamera, identitas Avatar Indonesia dari Character Ingredient (jika ada talent), "
+            "dan kemiripan 100% geometri fisik produk terhadap Product Ingredient."
         ),
     )
 
