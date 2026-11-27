@@ -1,0 +1,46 @@
+gemini:
+  base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
+  timeout_sec: 60
+  max_retries: 1
+  vision_model: "gemini-2.5-flash"
+  text_model: "gemini-2.5-flash"
+  fallback_models:
+    - "gemini-2.5-flash-lite"
+    - "gemini-2.0-flash"
+
+openrouter:
+  base_url: "https://openrouter.ai/api/v1"
+  timeout_sec: 90
+  max_retries: 2
+  presets:
+    free_router:
+      label: "OpenRouter Free (Prioritas Model Besar)"
+      vision_model: "google/gemma-3-27b-it:free"
+      text_model: "google/gemma-3-27b-it:free"
+      vision_fallbacks:
+        - "qwen/qwen2.5-vl-72b-instruct:free"
+        - "meta-llama/llama-3.2-11b-vision-instruct:free"
+        - "openrouter/free"
+      text_fallbacks:
+        - "qwen/qwen2.5-vl-72b-instruct:free"
+        - "meta-llama/llama-3.3-70b-instruct:free"
+        - "openrouter/free"
+    budget_pro:
+      label: "OpenRouter Commercial Pro (Gemini 2.5 Flash)"
+      vision_model: "google/gemini-2.5-flash"
+      text_model: "google/gemini-2.5-flash"
+      vision_fallbacks:
+        - "openai/gpt-4o-mini"
+      text_fallbacks:
+        - "openai/gpt-4o-mini"
+
+tts:
+  default_voice: "id-ID-GadisNeural"
+  voices:
+    - "id-ID-GadisNeural"
+    - "id-ID-ArdiNeural"
+  default_rate: "+6%"
+
+paths:
+  projects_dir: "projects"
+  profile_dir: "profile"

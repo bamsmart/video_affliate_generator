@@ -1,0 +1,53 @@
+# Shopee-inspired clean dual light/dark theme (based on shadcn-dual)
+
+[theme]
+showWidgetBorder = true
+showSidebarBorder = true
+baseRadius = "8px"
+buttonRadius = "8px"
+font = "'Inter':https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+codeFontSize = "0.875rem"
+baseFontSize = 14
+baseFontWeight = 400
+headingFontSizes = ["32px", "26px", "22px", "18px", "16px", "14px"]
+headingFontWeights = [600, 600, 600, 600, 600, 600]
+linkUnderline = true
+
+[theme.light]
+primaryColor = "#EE4D2D"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#FAFAFA"
+codeBackgroundColor = "#F4F4F5"
+textColor = "#09090B"
+linkColor = "#EE4D2D"
+borderColor = "#E4E4E7"
+codeTextColor = "#18181B"
+
+[theme.dark]
+primaryColor = "#FF6B4A"
+backgroundColor = "#09090B"
+secondaryBackgroundColor = "#18181B"
+codeBackgroundColor = "#27272A"
+textColor = "#FAFAFA"
+linkColor = "#FF8A70"
+borderColor = "#27272A"
+codeTextColor = "#E4E4E7"
+
+[theme.light.sidebar]
+backgroundColor = "#FAFAFA"
+secondaryBackgroundColor = "#F4F4F5"
+codeBackgroundColor = "#E4E4E7"
+textColor = "#09090B"
+borderColor = "#E4E4E7"
+primaryColor = "#EE4D2D"
+linkColor = "#EE4D2D"
+
+[theme.dark.sidebar]
+backgroundColor = "#0C0C0E"
+secondaryBackgroundColor = "#18181B"
+codeBackgroundColor = "#27272A"
+textColor = "#FAFAFA"
+borderColor = "#27272A"
+primaryColor = "#FF6B4A"
+linkColor = "#FF8A70"
