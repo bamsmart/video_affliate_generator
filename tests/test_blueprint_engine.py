@@ -7,10 +7,12 @@ from PIL import Image
 
 from src.blueprint_engine import (
     apply_regenerated_hook,
+    audit_commercial_story_pillars,
     compose_full_15s_flow_prompt,
     count_words,
     detect_flow_prompt_hallucination_risks,
     enforce_commercial_mechanisms,
+    normalize_indonesian_speech_orthography,
 )
 from src.history_store import append_product_hook, list_saved_blueprints, load_product_hooks
 from src.image_prep import (
@@ -358,6 +360,11 @@ def test_ugc_director_prompt_studio_skill_and_system_prompt():
 
 
 def test_avatar_photo_persistence_and_talking_voice_prompt(tmp_path: Path):
+    assert (
+        normalize_indonesian_speech_orthography("yg bgt tdk dgn utk krn tp")
+        == "yang banget tidak dengan untuk karena tapi"
+    )
+
     prof_dir = tmp_path / "profile"
     assert get_saved_avatar_photo_path(prof_dir) is None
 
@@ -375,9 +382,12 @@ def test_avatar_photo_persistence_and_talking_voice_prompt(tmp_path: Path):
     )
     for sc in bp.scenes:
         vp = sc.flow_voice_prompt_en
-        assert "@ProductAuthority" in vp
+        assert vp.count("@ProductAuthority") == 1
+        assert vp.count("@me") == 1
         assert " @me " in vp
-        assert "indonesian voice" in vp.lower()
+        assert "medium close-up" in vp.lower()
+        assert "native indonesian voice and accent" in vp.lower()
+        assert "no background music" in vp.lower()
         assert sc.vo_script_id in vp
         assert "[" not in vp and "]" not in vp and '"' not in vp
         assert vp.endswith("No text overlays, no additional logos, no readable screens.")
@@ -388,13 +398,31 @@ def test_avatar_photo_persistence_and_talking_voice_prompt(tmp_path: Path):
 
     full_15s = compose_full_15s_flow_prompt(bp, profile=prof, include_voice=True)
     assert "15-second" in full_15s and "no looping" in full_15s
-    assert "@ProductAuthority" in full_15s and " @me " in full_15s
-    assert "indonesian voice" in full_15s.lower()
+    assert "0-4s" in full_15s and "4-10s" in full_15s and "10-15s" in full_15s
+    assert "before-and-after" in full_15s.lower()
+    assert full_15s.count("@ProductAuthority") == 1
+    assert full_15s.count("@me") == 1
+    assert " @me " in full_15s
+    assert "medium close-up" in full_15s.lower()
+    assert "native indonesian voice and accent" in full_15s.lower()
+    assert "no background music" in full_15s.lower()
     assert all(sc.vo_script_id in full_15s for sc in bp.scenes[:3])
     assert "[" not in full_15s and "]" not in full_15s and '"' not in full_15s
 
     delete_avatar_photo(prof_dir)
     assert get_saved_avatar_photo_path(prof_dir) is None
+
+
+def test_commercial_story_pillars_cover_emotion_solution_detail_before_after_cta():
+    prof = TalentSavedProfile()
+    for sc_count in (3, 5, 7):
+        bp = enforce_commercial_mechanisms(
+            build_offline_demo_blueprint(prof, scene_count=sc_count, variation_index=0),
+            is_faceless=False,
+            profile=prof,
+        )
+        pillars = audit_commercial_story_pillars(bp)
+        assert all(pillars.values()), f"Scene count {sc_count} missing pillar: {pillars}"
 
 
 def test_auto_product_turnaround_sheet_multi_angles(tmp_path: Path):
@@ -434,8 +462,74 @@ def test_auto_product_turnaround_sheet_multi_angles(tmp_path: Path):
         output_dir=tmp_path / "input",
     )
     assert saved_path.is_file()
+    assert saved_path.name == "ProductAuthority.jpg"
     with Image.open(saved_path) as im4:
         assert im4.width == im4.height
+
+
+def test_outdoor_chair_gets_medium_shot_physical_blocking_and_outdoor_ambience() -> None:
+    """Outdoor chairs use medium shot, tactile sitting/patting blocking, outdoor ambience, and deduped VO."""
+    profile = TalentSavedProfile()
+    bp = build_offline_demo_blueprint(
+        profile=profile,
+        scene_count=3,
+        extra_note="Kursi Lipat Outdoor Seekday Premium",
+        platform_mode=PlatformMode.SHOPEE,
+    )
+    chair_analysis = bp.product_analysis.model_copy(
+        update={
+            "product_name": "Kursi Lipat Outdoor Seekday Premium",
+            "category": "Kursi Outdoor",
+            "recommended_setting_id": "Teras patio outdoor sore hari",
+        }
+    )
+    outdoor_setup = bp.flow_setup.model_copy(
+        update={
+            "locked_visual_bible_en": (
+                "Consistent warm afternoon outdoor patio sunlight, soft bokeh terrace, "
+                "@ProductAuthority matching reference geometry, authentic Indonesian UGC style."
+            )
+        }
+    )
+    dup_claim = "Rangka baja kokoh menahan beban 150 kg dan tetap nyaman duduk lama."
+    scenes = [
+        bp.scenes[0].model_copy(
+            update={"vo_script_id": "Capek kursi goyang dan cepat ringkih saat dipakai santai di teras?"}
+        ),
+        bp.scenes[1].model_copy(update={"vo_script_id": f"Kenalan sama Seekday. {dup_claim}"}),
+        bp.scenes[2].model_copy(update={"vo_script_id": f"{dup_claim} Langsung cek Keranjang Oranye ya!"}),
+    ]
+    chair_bp = bp.model_copy(
+        update={
+            "product_analysis": chair_analysis,
+            "flow_setup": outdoor_setup,
+            "scenes": scenes,
+        }
+    )
+
+    fixed = enforce_commercial_mechanisms(chair_bp, platform_mode=PlatformMode.SHOPEE, profile=profile)
+    full_15s = compose_full_15s_flow_prompt(fixed, profile=profile)
+    low = full_15s.lower()
+
+    assert "medium shot" in low
+    assert "medium close-up" not in low
+    assert "subtle natural outdoor breeze ambience" in low
+    assert "room tone" not in low
+    assert "indoor room ambience" not in low
+    assert "sits comfortably on @ProductAuthority" in full_15s
+    assert "patting its sturdy side support" in full_15s
+    assert "before-and-after" in low
+    assert "bottom-left screen" in low
+    assert full_15s.count("150 kg") == 1
+    assert "Keranjang Oranye" in full_15s
+    assert full_15s.count("@me") == 1
+    assert full_15s.count("@ProductAuthority") == 1
+    assert detect_flow_prompt_hallucination_risks(full_15s) == []
+
+    scene0_voice = fixed.scenes[0].flow_voice_prompt_en.lower()
+    assert "medium shot" in scene0_voice
+    assert "subtle natural outdoor breeze ambience" in scene0_voice
+
 
 
 

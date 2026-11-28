@@ -60,9 +60,9 @@ Untuk mematikan server lokal, tekan **`Control + C`** di terminal (atau jalankan
 1. Pada kartu hasil **Siap pakai! 3 langkah di Google Flow**, periksa pilihan durasi:
    - **`15 detik utuh` (Default):** Memuat naskah lengkap (*Emosi & Painful → Solusi Produk → Before vs After + CTA*) dengan arahan `"no looping"` agar saat Google Flow diset **15s** Avatar berbicara penuh tanpa mengulang.
    - **`8 detik`:** Dipakai bila ingin membuat klip pendek 5–8 detik per adegan di Veo.
-2. Klik **`Download foto produk (.jpg)`** (atau **`Download Turnaround Sheet produk (.jpg)`** bila mengunggah 2–4 sudut) dan download **`avatar_photo.jpg`** bila belum ada di galeri/folder Google Flow.
-3. Klik **`Buka Google Flow`** → buat *project* baru → pilih **Videos (`9:16`)** → atur durasi **`15s`** (atau `5-8s`) → klik **`+`** lalu unggah **Foto Produk / Turnaround Sheet + Foto Avatar** tadi.
-4. Klik ikon **Copy** di kotak **`Prompt Google Flow — Suara, Script & Avatar`** → **Paste** → **Generate**. Video langsung keluar lengkap dengan wajah Avatar, gerak bibir sinkron, dan suara Bahasa Indonesia yang menjelaskan produk!
+2. Klik **`Download ProductAuthority.jpg (Foto Produk)`** (atau `(Multi-Sudut)` bila mengunggah 2–4 sudut) dan **`Download avatar_photo.jpg (Foto Wajah)`** bila belum tersimpan di perangkat Anda.
+3. Klik **`Buka Google Flow`** → buat *project* baru → pilih **Videos (`9:16`)** → atur durasi **`15s`** (atau `5-8s`) → klik **`+`** lalu unggah **`ProductAuthority.jpg`** & **`avatar_photo.jpg`**.
+4. Klik ikon **Copy** di kotak **`Prompt Google Flow — Suara, Script & Avatar`** → **Paste** → **Generate**. *(Jika `@ProductAuthority` belum otomatis menjadi tag biru, cukup hapus tulisan `@ProductAuthority` lalu ketik **`@`** dan klik foto `ProductAuthority.jpg` yang muncul.)* Video langsung keluar lengkap dengan wajah Avatar, gerak bibir sinkron, dan suara Bahasa Indonesia!
 
 > **Ingin lanjut ke Scene 2 tanpa produk berubah bentuk?** Di Google Flow, klik **`Extend`** di akhir klip 1, **ATAU** jeda (*Pause*) video Scene 1 di frame terakhir → arahkan kursor dan klik **`Save frame`** → pakai gambar itu sebagai **`Start frame`** Scene 2. Buka juga **Mode pro** di bawah untuk **Storyboard Grid (`Nano Banana`)**, **Potong Otomatis (`keyframes.zip`)**, **Slider Crop**, dan **Product Knowledge**.
 

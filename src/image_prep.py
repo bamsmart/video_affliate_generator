@@ -126,14 +126,14 @@ def save_product_authority_image(
     top_crop_pct: float = 0.08,
     bottom_crop_pct: float = 0.24,
 ) -> tuple[Path, bool]:
-    """Save single clean product photo or multi-angle Turnaround Sheet to `ingredient_produk_bersih.jpg`."""
+    """Save single clean product photo or multi-angle Turnaround Sheet to `ProductAuthority.jpg`."""
     output_dir.mkdir(parents=True, exist_ok=True)
     sheet_bytes, any_cropped = build_product_turnaround_sheet(
         images_bytes,
         top_crop_pct=top_crop_pct,
         bottom_crop_pct=bottom_crop_pct,
     )
-    out_path = output_dir / "ingredient_produk_bersih.jpg"
+    out_path = output_dir / "ProductAuthority.jpg"
     out_path.write_bytes(sheet_bytes)
     return out_path, any_cropped
 

@@ -78,10 +78,12 @@ Keep `vo_script_id` strictly within **12–16 spoken Indonesian words per scene*
 
 ---
 
-## 5. Platform CTA & Compliance Guardrails
+## 5. Platform CTA, Anti-Shadowban & Speech Orthography Guardrails
 
 - **Shopee Video:** Say `Keranjang Oranye` or `Tautan Produk di bawah` (never say `Keranjang Kuning`).
 - **TikTok Shop:** Say `Keranjang Kuning`.
 - **Dual Mode (`BOTH`):** Say neutral `cek keranjang di bawah` in the VO so one video edit works cleanly across both platforms, while separating `shopee_caption_and_hashtags` and `tiktok_caption_and_hashtags`.
+- **Anti-Shadowban First 3 Seconds:** Never open Scene 1 with raw hard-selling triggers (`Beli sekarang`, `Diskon besar`, `Murah banget`, `WA`, `No HP`). Lead with emotional pain or real solution in Scene 1 and keep CTAs at the end.
+- **Clean Indonesian Speech Orthography & Audio Isolation:** Spell Indonesian script words completely—never write SMS abbreviations (`yg`, `bgt`, `tdk`, `dgn`, `utk`) that make Veo 3.1 / Omni Flash stumble. Target **11–14 words/scene** (~33–40 words across 3 scenes for clean 15s delivery) with `medium close-up`, `natural native Indonesian voice and accent`, and `no background music` so lip-sync stays crisp.
 - **Banned Claims (Zero Tolerance):** Never write absolute medical promises (`menyembuhkan`, `mengobati`, `sembuh total`, `mencegah penyakit`, `100% ampuh`, `hilang permanen`, `putih dalam X hari`), deceptive pricing (`termurah se-Indonesia`, `pasti gratis`), or off-platform redirects (`beli via WA/DM/IG`). Always frame benefits softly (`membantu merawat`, `terasa lebih nyaman`, `cek promo di keranjang`).
 - **Visual Integrity Rule:** Never script or depict the promoted product broken, torn, wobbling, or leaking—compare against generic frustration verbally, not by damaging `@ProductAuthority`.

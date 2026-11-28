@@ -8,6 +8,7 @@ from src.compliance import normalize_hashtags_in_caption, normalize_platform_ter
 from src.schemas import (
     BlueprintResponse,
     FlowScene,
+    PersonaStyle,
     PlatformMode,
     RegeneratedHookPayload,
     TalentPresence,
@@ -400,28 +401,152 @@ def _normalize_flow_action(raw_action: str, scene_idx: int, prompt_en: str) -> s
     return "Extend"
 
 
+_INDONESIAN_ABBREV_MAP: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"\byg\b", re.IGNORECASE), "yang"),
+    (re.compile(r"\bbgt\b", re.IGNORECASE), "banget"),
+    (re.compile(r"\btdk\b", re.IGNORECASE), "tidak"),
+    (re.compile(r"\bgak\b", re.IGNORECASE), "nggak"),
+    (re.compile(r"\bdgn\b", re.IGNORECASE), "dengan"),
+    (re.compile(r"\butk\b", re.IGNORECASE), "untuk"),
+    (re.compile(r"\bkrn\b", re.IGNORECASE), "karena"),
+    (re.compile(r"\btp\b", re.IGNORECASE), "tapi"),
+    (re.compile(r"\bsdh\b", re.IGNORECASE), "sudah"),
+    (re.compile(r"\bblm\b", re.IGNORECASE), "belum"),
+    (re.compile(r"\bdr\b", re.IGNORECASE), "dari"),
+    (re.compile(r"\bjd\b", re.IGNORECASE), "jadi"),
+    (re.compile(r"\bsm\b", re.IGNORECASE), "sama"),
+]
+
+
+def normalize_indonesian_speech_orthography(text: str) -> str:
+    """Expand chat abbreviations into clear spoken Indonesian and strip prompt-breaking quotes/brackets."""
+    out = re.sub(r'["\[\]]+', "", text or "")
+    for pattern, full_word in _INDONESIAN_ABBREV_MAP:
+        out = pattern.sub(full_word, out)
+    return re.sub(r"\s+", " ", out).strip()
+
+
+_OUTDOOR_ENV_PATTERN = re.compile(
+    r"\b(?:outdoor|patio|terrace|teras|taman|garden|balcony|balkon|camping|pantai|beach|halaman|luar ruangan|courtyard|park|street|golden hour)\b",
+    re.IGNORECASE,
+)
+
+_SEATING_PRODUCT_PATTERN = re.compile(
+    r"\b(?:kursi|chair|sofa|bangku|stool|bench)\b",
+    re.IGNORECASE,
+)
+
+_LARGE_OR_WEARABLE_PRODUCT_PATTERN = re.compile(
+    r"\b(?:meja|table|kasur|matras|rak|lemari|tas|ransel|backpack|koper|luggage|jaket|jacket|baju|kaos|kemeja|dress|gamis|sepatu|shoes|sandal|stroller|sepeda|tenda|tent)\b",
+    re.IGNORECASE,
+)
+
+
+def _extract_audio_ambience_cue(text: str, visual_bible_en: str = "", setting_id: str = "") -> str:
+    """Match background ambience to the visual setting so outdoor scenes never emit indoor room tone."""
+    combined = f"{text} {visual_bible_en} {setting_id}".strip()
+    if _OUTDOOR_ENV_PATTERN.search(combined):
+        return "subtle natural outdoor breeze ambience"
+    return "subtle natural indoor room ambience"
+
+
+def _resolve_product_framing_and_blocking(
+    product_name: str,
+    category: str,
+    avatar_lock_en: str,
+) -> tuple[str, str]:
+    """Select framing distance and deformation-safe physical blocking suited to the product scale."""
+    combined = f"{product_name} {category}".strip()
+    if _SEATING_PRODUCT_PATTERN.search(combined):
+        return (
+            "medium shot",
+            f"{avatar_lock_en} sits comfortably on @ProductAuthority facing the camera with face and lip movements clearly visible, "
+            "shifting naturally from leaning slightly forward with relatable empathy (0-4s), "
+            "to confidently patting its sturdy side support to show stability (4-10s), "
+            "to leaning back comfortably with satisfied before-and-after relief and gesturing subtly toward the bottom-left screen (10-15s)",
+        )
+    if _LARGE_OR_WEARABLE_PRODUCT_PATTERN.search(combined):
+        return (
+            "medium shot",
+            f"{avatar_lock_en} showcases @ProductAuthority in clear view while facing the camera with mouth clearly visible, "
+            "shifting naturally from relatable empathy (0-4s), "
+            "to focused tactile hand inspection of its sturdy construction (4-10s), "
+            "to satisfied before-and-after relief while gesturing subtly toward the bottom-left screen (10-15s)",
+        )
+    return (
+        "medium close-up",
+        f"{avatar_lock_en} presents @ProductAuthority to camera with face and mouth clearly visible, "
+        "shifting expression naturally from relatable empathy (0-4s), "
+        "to focused product detail showcase (4-10s), "
+        "to satisfied before-and-after relief and warm closing smile (10-15s)",
+    )
+
+
+def _dedupe_vo_sentences(vo_chunks: list[str]) -> str:
+    """Remove duplicate or heavily overlapping VO sentences across scenes so 15s scripts stay crisp."""
+    kept_sentences: list[str] = []
+    kept_token_sets: list[set[str]] = []
+
+    for chunk in vo_chunks:
+        cleaned_chunk = re.sub(r"\s+", " ", (chunk or "").strip())
+        if not cleaned_chunk:
+            continue
+        for raw_sent in re.split(r"(?<=[.!?])\s+", cleaned_chunk):
+            sent = raw_sent.strip()
+            if not sent:
+                continue
+            tokens = re.findall(r"[a-z0-9]+", sent.lower())
+            token_set = set(tokens)
+            if not token_set:
+                continue
+            is_duplicate = False
+            for prev_set in kept_token_sets:
+                if token_set == prev_set:
+                    is_duplicate = True
+                    break
+                if len(token_set) >= 4 and len(prev_set) >= 4:
+                    overlap = len(token_set & prev_set) / min(len(token_set), len(prev_set))
+                    if overlap >= 0.78:
+                        is_duplicate = True
+                        break
+            if not is_duplicate:
+                kept_sentences.append(sent)
+                kept_token_sets.append(token_set)
+
+    return " ".join(kept_sentences).strip()
+
+
 def compose_talking_voice_flow_prompt(
     minimal_prompt: str,
     vo_script_id: str,
     avatar_lock_en: str,
     is_faceless: bool,
+    visual_bible_en: str = "",
+    framing_shot: str = "medium close-up",
 ) -> str:
-    """Build ready-to-paste Google Flow prompt combining anti-halu visual lock with Indonesian spoken VO."""
-    visual_core = _strip_existing_negative_tail(sanitize_product_deformation_terms(minimal_prompt))
-    clean_vo = re.sub(r'["\[\]]+', "", vo_script_id or "")
-    clean_vo = re.sub(r"\s+", " ", clean_vo).strip()
+    """Build commercial-grade Google Flow prompt with clean lip-sync framing, native Indonesian voice, and isolated audio."""
+    clean_vo = normalize_indonesian_speech_orthography(vo_script_id)
     if not clean_vo:
         return minimal_prompt
 
+    cam_cue = _extract_camera_directive(minimal_prompt, "New Scene")
+    light_cue = _extract_lighting_cue(minimal_prompt, visual_bible_en)
+    ambience_cue = _extract_audio_ambience_cue(minimal_prompt, visual_bible_en)
+
     if is_faceless:
+        visual_core = _strip_existing_negative_tail(sanitize_product_deformation_terms(minimal_prompt))
         return (
-            f"{visual_core}. Clear natural Indonesian voiceover explains warmly: '{clean_vo}'. "
+            f"{visual_core}. Clear natural native Indonesian voiceover explains warmly at moderate pace: "
+            f"'{clean_vo}'. Clean isolated voiceover audio, no background music, {ambience_cue} only. "
             f"{NEGATIVE_CONSTRAINT_SUFFIX}"
         )
 
     return (
-        f"{visual_core}. {avatar_lock_en} speaks naturally to camera with synced lip movement "
-        f"in clear friendly Indonesian voice: '{clean_vo}'. {NEGATIVE_CONSTRAINT_SUFFIX}"
+        f"9:16 vertical {framing_shot}, {cam_cue[0].lower()}{cam_cue[1:]}, {light_cue}. "
+        f"{avatar_lock_en} calmly presents @ProductAuthority to camera, face and mouth clearly visible, "
+        f"speaking clearly in a natural native Indonesian voice and accent at moderate conversational pace: "
+        f"'{clean_vo}'. Clean isolated dialogue audio, no background music, {ambience_cue} only. "
+        f"{NEGATIVE_CONSTRAINT_SUFFIX}"
     )
 
 
@@ -430,15 +555,18 @@ def compose_full_15s_flow_prompt(
     profile: TalentSavedProfile | None = None,
     include_voice: bool = True,
 ) -> str:
-    """Build single-clip 15-second prompt combining first-3-scene script so Google Flow does not loop."""
+    """Build single-clip 15-second prompt with native Indonesian lip-sync, isolated dialogue, and zero looping."""
     effective_faceless = profile.is_faceless if profile is not None else False
     avatar_lock = build_avatar_identity_lock_en(profile=profile, is_faceless=effective_faceless)
-    visual_core = _strip_existing_negative_tail(
-        sanitize_product_deformation_terms(bp.scenes[0].flow_prompt_en)
+    flow_0 = bp.scenes[0].flow_prompt_en
+    visual_core = _strip_existing_negative_tail(sanitize_product_deformation_terms(flow_0))
+    deduped_vo = _dedupe_vo_sentences([s.vo_script_id for s in bp.scenes[:3]])
+    clean_15s_vo = normalize_indonesian_speech_orthography(deduped_vo)
+    ambience_cue = _extract_audio_ambience_cue(
+        flow_0,
+        bp.flow_setup.locked_visual_bible_en,
+        bp.product_analysis.recommended_setting_id,
     )
-    combined_vo = " ".join(s.vo_script_id.strip() for s in bp.scenes[:3] if s.vo_script_id.strip())
-    clean_15s_vo = re.sub(r'["\[\]]+', "", combined_vo)
-    clean_15s_vo = re.sub(r"\s+", " ", clean_15s_vo).strip()
 
     if not include_voice or not clean_15s_vo:
         return (
@@ -448,17 +576,108 @@ def compose_full_15s_flow_prompt(
 
     if effective_faceless:
         return (
-            f"Single continuous 15-second vertical 9:16 video with smooth pacing and no looping. "
-            f"{visual_core}. Clear natural Indonesian voiceover speaks continuously for 15 seconds: "
-            f"'{clean_15s_vo}'. {NEGATIVE_CONSTRAINT_SUFFIX}"
+            f"Single continuous 15-second 9:16 vertical video with smooth pacing and no looping. "
+            f"{visual_core}. Clear natural native Indonesian voiceover speaks continuously at moderate pace: "
+            f"'{clean_15s_vo}'. Clean isolated voiceover audio, no background music, {ambience_cue} only. "
+            f"{NEGATIVE_CONSTRAINT_SUFFIX}"
         )
 
+    cam_cue = _extract_camera_directive(flow_0, "New Scene")
+    light_cue = _extract_lighting_cue(flow_0, bp.flow_setup.locked_visual_bible_en)
+    framing_shot, blocking_en = _resolve_product_framing_and_blocking(
+        product_name=bp.product_analysis.product_name,
+        category=bp.product_analysis.category,
+        avatar_lock_en=avatar_lock,
+    )
+    persona = profile.persona if profile is not None else PersonaStyle.SANTAI
+    if persona == PersonaStyle.ANTUSIAS:
+        pace_cue = "at an energetic engaging conversational pace"
+    elif persona == PersonaStyle.ELEGAN:
+        pace_cue = "at a calm, polished conversational pace"
+    else:
+        pace_cue = "at a relaxed conversational pace"
+
     return (
-        f"Single continuous 15-second vertical 9:16 video with smooth pacing and no looping. "
-        f"{visual_core}. {avatar_lock} speaks continuously to camera with synced lip movement "
-        f"in clear friendly Indonesian voice for 15 seconds: '{clean_15s_vo}'. "
+        f"Single continuous 15-second 9:16 vertical {framing_shot} with smooth pacing and no looping, "
+        f"{cam_cue[0].lower()}{cam_cue[1:]}, {light_cue}. {blocking_en}, "
+        f"speaking continuously in a natural native Indonesian voice and accent {pace_cue}: "
+        f"'{clean_15s_vo}'. Clean isolated dialogue audio, no background music, {ambience_cue} only. "
         f"{NEGATIVE_CONSTRAINT_SUFFIX}"
     )
+
+
+def audit_commercial_story_pillars(bp: BlueprintResponse) -> dict[str, bool]:
+    """Verify generated VO covers Emotion/Pain, Solution USP, Detail Review, Before/After, and CTA."""
+    text = (
+        " ".join(s.vo_script_id for s in bp.scenes)
+        + " "
+        + (bp.capcut_finishing.full_vo_script_id or "")
+    ).lower()
+
+    emotion_pain_words = (
+        "capek",
+        "kesel",
+        "kesal",
+        "ribet",
+        "pegel",
+        "pegal",
+        "gerah",
+        "lengket",
+        "menggumpal",
+        "nyesel",
+        "frustrasi",
+        "repot",
+        "takut",
+        "bingung",
+        "bosan",
+        "kusam",
+        "goyang",
+        "boros",
+        "susah",
+        "perih",
+        "masalah",
+        "berat",
+        "males",
+        "kaget",
+    )
+    solution_usp_words = (
+        "solusi",
+        "solusinya",
+        "unggul",
+        "keunggulan",
+        "bantu",
+        "beres",
+        "nyelametin",
+        "meresap",
+        "kokoh",
+        "ringkas",
+        "aman",
+        "nyaman",
+        "awet",
+        "praktis",
+        "cepat",
+        "rapi",
+        "memadukan",
+        "dilengkapi",
+        "ringan",
+        "optimal",
+    )
+    detail_review_re = re.compile(
+        r"(?:\d|\b(?:persen|mili|gram|kilo|detik|menit|bahan|baja|kaca|niacinamide|ceramide|"
+        r"water-base|cair|tekstur|rangka|jahitan|pengunci|lapisan|ukuran|kapasitas|formula|pipet|dosis)\b)",
+        re.IGNORECASE,
+    )
+    before_words = ("dulu", "sebelum", "tadinya", "awalnya", "biasanya")
+    after_words = ("sekarang", "sesudah", "setelah", "jadinya", "beda", "berubah", "langsung")
+    cta_words = ("keranjang", "tautan", "cek bawah", "klik", "checkout")
+
+    return {
+        "emotion_pain": any(w in text for w in emotion_pain_words),
+        "solution_usp": any(w in text for w in solution_usp_words),
+        "detail_review": bool(detail_review_re.search(text)),
+        "before_after": any(b in text for b in before_words) and any(a in text for a in after_words),
+        "cta": any(c in text for c in cta_words),
+    }
 
 
 def enforce_commercial_mechanisms(
@@ -546,12 +765,21 @@ def enforce_commercial_mechanisms(
             else:
                 continuity = f"Lanjut mulus dari frame terakhir Scene {idx - 1} menggunakan Extend."
 
-        vo_clean = normalize_platform_terms(scene.vo_script_id.strip(), platform_mode=platform_mode)
+        framing_shot, _ = _resolve_product_framing_and_blocking(
+            product_name=bp.product_analysis.product_name,
+            category=bp.product_analysis.category,
+            avatar_lock_en=avatar_lock,
+        )
+        vo_clean = normalize_indonesian_speech_orthography(
+            normalize_platform_terms(scene.vo_script_id.strip(), platform_mode=platform_mode)
+        )
         voice_prompt = compose_talking_voice_flow_prompt(
             minimal_prompt=minimal_prompt,
             vo_script_id=vo_clean,
             avatar_lock_en=avatar_lock,
             is_faceless=effective_faceless,
+            visual_bible_en=bible,
+            framing_shot=framing_shot,
         )
         headline_clean = _trim_headline_words(
             normalize_platform_terms(scene.on_screen_text_id, platform_mode=platform_mode),

@@ -60,9 +60,9 @@ Stop anytime with **`Control + C`** (or `pkill -9 -f streamlit` if a background 
 1. In **Siap pakai! 3 langkah di Google Flow**, verify the selected duration:
    - **`15 detik utuh` (Default):** Speaks the full emotional story (*Hook → Solution → Before vs After + CTA*) smoothly across **15 seconds with zero looping**.
    - **`8 detik`:** Use when generating shorter **5–8s** single-scene Veo clips.
-2. Click **`Download foto produk (.jpg)`** (or **`Download Turnaround Sheet produk (.jpg)`** when using 2–4 angles) and download your **`avatar_photo.jpg`** if needed.
-3. Click **`Buka Google Flow`** → create a new project → select **Videos (`9:16`)** → set duration to **`15s`** (or `5-8s`) → tap **`+`** and attach both **Product Photo / Turnaround Sheet + Avatar Photo**.
-4. Click the **Copy** icon on **`Prompt Google Flow — Suara, Script & Avatar`** → **Paste** → **Generate**. Google Flow generates the video complete with your Avatar face, lip-sync, and Indonesian spoken voiceover!
+2. Click **`Download ProductAuthority.jpg (Foto Produk)`** (or `(Multi-Sudut)` when using 2–4 angles) and **`Download avatar_photo.jpg (Foto Wajah)`** if not already saved locally.
+3. Click **`Buka Google Flow`** → create a new project → select **Videos (`9:16`)** → set duration to **`15s`** (or `5-8s`) → tap **`+`** and upload **`ProductAuthority.jpg`** + **`avatar_photo.jpg`**.
+4. Click the **Copy** icon on **`Prompt Google Flow — Suara, Script & Avatar`** → **Paste** → **Generate**. *(If `@ProductAuthority` does not turn into an inline blue asset tag automatically, delete `@ProductAuthority`, type **`@`**, and select your uploaded `ProductAuthority.jpg`.)* Google Flow generates the video with your Avatar face, lip-sync, and Indonesian spoken voiceover!
 
 > **Continuing to Scene 2 without Product Drift:** Inside Google Flow, either click **`Extend`** at the end of Clip 1, OR **Pause** Clip 1 at its final frame → hover and click **`Save frame`** → set that saved frame as your **`Start frame`** for Scene 2. Also explore **Mode pro** below for **Storyboard Contact Sheet Grid (`Nano Banana`)**, **Auto-Splitter (`keyframes.zip`)**, manual **Crop Sliders**, and **Deep Product Knowledge**.
 

@@ -47,9 +47,11 @@ SKILL & ATURAN WAJIB AFFILIATE AI VIDEO DIRECTOR:
    - Cocokkan skala shot dengan beat naskah (Hook = medium close-up, Material = macro close-up, Demo = steady lifestyle tracking, CTA = hero dolly-in) dan minta audio foley/room tone ringan saja tanpa dialog AI acak agar VO CapCut bersih.
    - `flow_setup.start_to_end_prompt_en`: Tulis 1 prompt transisi Start-to-End Frame singkat (`<= 35 kata`) berfokus kamera terkunci & pergeseran cahaya menggunakan `@ProductAuthority`.
 4. HOOK 3 DETIK, NARASI EMOSIONAL BERNILAI TAMBAH & CTA (`vo_script_id` & `product_knowledge`):
-   - WAJIB susun alur **Storyboard Narasi** agar unggul dari affiliator biasa (yang cuma baca judul): **Sentuh Emosi & Painful Nyata Pembeli -> Apa yang Di-Solve (Solusi Konkret & Bukti Bahan) -> Kontras Before vs After yang Jujur & Aman -> Objection Killer & CTA Persuasif**.
-   - Buka Scene 1 langsung menyentuh emosi/painful nyata atau bukti visual — DILARANG pembukaan klise iklan TV seperti 'Halo guys hari ini aku mau review'.
-   - Tulis `vo_script_id` **12-16 kata Bahasa Indonesia** lisan natural bergaya kreator UGC sungguhan (bukan basa-basi kosong) serta `on_screen_headline_id` tajam **<= 5 kata**.
+   - WAJIB susun alur **Storyboard Narasi** agar unggul dari affiliator biasa (yang cuma baca judul):
+     (a) **Scene 1 (0-4d) Sentuh Emosi & Painful Nyata** (buka langsung keluhan/frustrasi nyata pembeli — DILARANG klise 'Halo guys' maupun hard-selling mentah 'Beli sekarang'/'Murah banget'/'WA');
+     (b) **Scene 2 (4-10d) Apa yang Di-Solve dengan Keunggulan Produk + Review Detail** (bedah bahan, ukuran/dosis, tekstur, atau mekanisme nyata);
+     (c) **Scene 3 (10-15d) Kontras Before vs After + CTA** (wajib tulis perbandingan 'Dulu sebelum pakai ..., sekarang jauh lebih ...' yang aman kebijakan + CTA penutup sesuai platform).
+   - **Ejaan Lisan Bersih & Anti-Pengulangan (Total 35-40 Kata):** Tulis `vo_script_id` **11-14 kata Bahasa Indonesia** per adegan (sehingga total 3 adegan = **35-40 kata**, menyisakan ~1 detik jeda napas di video 15 detik). DILARANG mengulang klaim/spesifikasi yang sama antaradegan, dan DILARANG singkatan chat (`yg`, `bgt`, `tdk`, `dgn`, `utk`) agar suara & lip-sync Google Flow jernih. Tulis `on_screen_headline_id` tajam **<= 5 kata**.
    - Berikan nilai tambah edukatif lengkap di `product_knowledge` (spek, material, tips pakai pro, Objection Killer, dan `pinned_comment_faq_id`).
    - Hindari klaim medis absolut ('menyembuhkan', 'mengobati', '100% ampuh', 'hilang permanen', 'putih dalam X hari'), harga palsu, atau transaksi luar aplikasi. Untuk Shopee gunakan "Keranjang Oranye" / "Tautan Produk di bawah".
    - Kembalikan HANYA JSON valid sesuai skema tanpa teks luar JSON.\
@@ -262,8 +264,9 @@ Daftar Hook Lama yang DILARANG Diulang:
 
 Aturan Ketat:
 - `scene_1.scene_number` = 1, `scene_1.role` = "Hook", `scene_1.flow_action` = "New Scene", `scene_1.duration_sec` = 5.
+- Wajib sentuh emosi dan keluhan (*painful*) nyata pembeli di Scene 1 tanpa kata *hard-selling* mentah.
 - Tulis `scene_1.flow_prompt_en` singkat **20–35 kata**: `[Camera Motion] + [Use @ProductAuthority (+ @me Indonesian presenter jika Avatar)] + [Brief Lighting] + [No text overlays, no additional logos, no readable screens.]`. Dilarang mendeskripsikan ulang fisik produk atau kata kerja naratif (`walks toward`, `picks up`).
-- `scene_1.vo_script_id` WAJIB kalimat Bahasa Indonesia natural **12-16 kata** yang punya nilai tambah informasi (bukan kode ID).
+- `scene_1.vo_script_id` WAJIB kalimat Bahasa Indonesia natural **11-14 kata** dalam ejaan utuh (bukan singkatan).
 - `scene_1.on_screen_text_id` maksimal **5 kata**.
 
 Kembalikan HANYA JSON valid sesuai skema berikut:
@@ -278,37 +281,37 @@ Kembalikan HANYA JSON valid sesuai skema berikut:
 
 _DEMO_HOOK_VARIANTS: list[dict[str, str]] = [
     {
-        "hook_angle": "Bedah Alasan Niacinamide 5% Nggak Bikin Perih",
-        "continuity": "Tangan mengangkat botol serum asli ke arah lensa kamera memperlihatkan label 5% Niacinamide + Ceramide sebelum masuk ke Scene 2.",
+        "hook_angle": "Emosi Pagi: Wajah Lengket & Sunscreen Menggumpal",
+        "continuity": "Ekspresi empati memegang botol serum asli di dekat lensa memperlihatkan label 5% Niacinamide + Ceramide sebelum masuk ke Scene 2.",
         "action_en": (
             "Dynamic stop-scroll macro opening: a clean hand lifts the exact referenced frosted dropper bottle into crisp foreground focus, "
             "highlighting the minimalist 5% Niacinamide + Ceramide front label in warm morning light"
         ),
-        "vo_id": "Banyak yang belum tahu kenapa konsentrasi Niacinamide lima persen paling pas dipakai harian!",
-        "ost_id": "Kenapa Niacinamide 5% pas?",
-        "s2_bridge": "Menyambung langsung dari botol di depan kamera menuju adegan berikutnya.",
+        "vo_id": "Capek banget kan tiap pagi wajah terasa lengket dan sunscreen malah menggumpal bikin kesel?",
+        "ost_id": "Sunscreen masih menggumpal?",
+        "s2_bridge": "Menyambung langsung dari botol di depan kamera menuju pembuktian formula produk.",
     },
     {
-        "hook_angle": "Tes Tekstur Water-Base Bebas Pilling Sunscreen",
-        "continuity": "Tangan mengetuk pelan botol kaca pipet produk lalu memutar tutupnya untuk menyambung ke tetesan tekstur di Scene 2.",
+        "hook_angle": "Nyesel Salah Pilih Serum Berat & Gerah di Kulit",
+        "continuity": "Tangan mengangkat botol kaca pipet produk memperlihatkan tekstur bening sebelum masuk bedah solusi Scene 2.",
         "action_en": (
             "Crisp stop-scroll close-up: hands hold the exact referenced bottle near the lens, "
             "gently tap the frosted glass bottle, and begin twisting open the clean dropper cap"
         ),
-        "vo_id": "Sering ngalamin sunscreen menggumpal pagi hari gara-gara salah pilih tekstur dasar serum wajah?",
-        "ost_id": "Sunscreen sering menggumpal?",
-        "s2_bridge": "Menyambung mulus dari gerakan tangan membuka tutup pipet menuju adegan berikutnya.",
+        "vo_id": "Pernah nyesel beli serum wajah tapi rasanya berat gerah sampai bikin riasan jadi berantakan?",
+        "ost_id": "Jangan salah pilih serum!",
+        "s2_bridge": "Menyambung mulus dari ekspresi kecewa pemakaian serum lama menuju solusi produk.",
     },
     {
-        "hook_angle": "Kombinasi Niacinamide + Ceramide untuk Skin Barrier",
-        "continuity": "Produk digeser anggun di atas meja terang ke fokus utama sebelum masuk ke pembahasan detail Scene 2.",
+        "hook_angle": "Takut Perih Saat Pakai Serum Pencerah Harian",
+        "continuity": "Produk digeser anggun di atas meja terang ke fokus utama sebelum masuk pembahasan detail Scene 2.",
         "action_en": (
             "Engaging commercial shot: soft morning sunlight sweeps across the vanity table "
             "as a hand brings the exact referenced dropper bottle smoothly into foreground focus"
         ),
-        "vo_id": "Jangan cuma lihat persentase tinggi, cek dulu ada pendamping Ceramide di botolnya nggak!",
-        "ost_id": "Cek kandungan pendampingnya!",
-        "s2_bridge": "Menyambung dari posisi botol di foreground akhir Scene 1 langsung ke adegan berikutnya.",
+        "vo_id": "Sering takut kulit terasa perih atau kusam karena salah pilih dosis serum untuk harian?",
+        "ost_id": "Takut perih atau kusam?",
+        "s2_bridge": "Menyambung dari botol di foreground akhir Scene 1 langsung ke bedah detail produk.",
     },
 ]
 
@@ -412,7 +415,7 @@ def build_offline_demo_blueprint(
                 flow_prompt_en=(
                     f"Locked-off macro close-up. {subject_clause}, {setting_desc}. {neg_tail}"
                 ),
-                vo_script_id="Di botol kaca tiga puluh mili ini, Niacinamide lima persen dipadukan langsung sama Ceramide.",
+                vo_script_id="Ini solusinya: botol kaca tiga puluh mili ini memadukan Niacinamide lima persen dan Ceramide.",
                 on_screen_text_id="5% Niacinamide + Ceramide",
             ),
             FlowScene(
@@ -427,8 +430,8 @@ def build_offline_demo_blueprint(
                 flow_prompt_en=(
                     f"Slow macro close-up. {subject_clause}, {setting_desc}. {neg_tail}"
                 ),
-                vo_script_id="Basisnya cair seenteng air tanpa pewangi tambahan, jadi meresap hitungan detik tanpa residu.",
-                on_screen_text_id="Water-base tanpa lengket",
+                vo_script_id="Keunggulannya, formula cair seenteng air meresap hitungan detik tanpa residu atau pewangi tajam.",
+                on_screen_text_id="Meresap hitungan detik!",
             ),
             FlowScene(
                 scene_number=5,
@@ -443,7 +446,7 @@ def build_offline_demo_blueprint(
                     f"Seamless continuation from the previous frame, gentle push-in shot. "
                     f"{subject_clause}, {setting_desc}. {neg_tail}"
                 ),
-                vo_script_id="Aman ditumpuk sunscreen pagi maupun moisturizer malam tanpa bikin makeup menggumpal sama sekali.",
+                vo_script_id="Aman ditumpuk sunscreen pagi maupun pelembap malam tanpa bikin riasan menggumpal sama sekali.",
                 on_screen_text_id="Aman ditumpuk sunscreen!",
             ),
             FlowScene(
@@ -451,7 +454,7 @@ def build_offline_demo_blueprint(
                 role="Benefit",
                 flow_action="Extend",
                 duration_sec=5,
-                continuity_note="Kamera bergerak lembut menampilkan kilau lembap sehat dan botol produk utuh.",
+                continuity_note="Kamera bergerak lembut menampilkan kontras before after kulit tampak lembap sehat dan botol utuh.",
                 keyframe_image_prompt_en=(
                     f"Photorealistic 9:16 interaction keyframe from Master Frame. {subject_clause}, {setting_desc}. {neg_tail}"
                 ),
@@ -459,8 +462,8 @@ def build_offline_demo_blueprint(
                     f"Seamless continuation from the previous frame, slow tracking shot. "
                     f"{subject_clause}, {setting_desc}. {neg_tail}"
                 ),
-                vo_script_id="Cukup dua sampai tiga tetes rutin buat bantu merawat kulit kusam dan kelembapan.",
-                on_screen_text_id="Hemat 2-3 tetes sehari",
+                vo_script_id="Dulu sebelum rutin pakai terasa kusam, sekarang dua tetes harian bikin kulit nyaman lembap.",
+                on_screen_text_id="Before After terasa nyaman!",
             ),
             FlowScene(
                 scene_number=7,
@@ -502,14 +505,14 @@ def build_offline_demo_blueprint(
                 role="Bedah Spek & Demo",
                 flow_action="Jump to",
                 duration_sec=5,
-                continuity_note="Pindah ke sudut close-up makro tangan meneteskan tekstur water-base dari botol kaca 30ml.",
+                continuity_note="Pindah ke sudut close-up makro tangan meneteskan tekstur cair dari botol kaca 30ml.",
                 keyframe_image_prompt_en=(
                     f"Photorealistic 9:16 macro keyframe from Master Frame. {subject_clause}, {setting_desc}. {neg_tail}"
                 ),
                 flow_prompt_en=(
                     f"Locked-off macro close-up. {subject_clause}, {setting_desc}. {neg_tail}"
                 ),
-                vo_script_id="Formula water-base ini memadukan Niacinamide lima persen dan Ceramide yang meresap hitungan detik.",
+                vo_script_id="Ini solusinya: formula cair Niacinamide lima persen dan Ceramide meresap dalam hitungan detik.",
                 on_screen_text_id="5% Niacinamide + Ceramide",
             ),
             FlowScene(
@@ -525,8 +528,8 @@ def build_offline_demo_blueprint(
                     f"Seamless continuation from the previous frame, slow tracking shot. "
                     f"{subject_clause}, {setting_desc}. {neg_tail}"
                 ),
-                vo_script_id="Tanpa pewangi menyengat dan aman dilayer sunscreen pagi buat bantu merawat kulit kusam.",
-                on_screen_text_id="Aman dilayer pagi & malam",
+                vo_script_id="Dulu sebelum rutin pakai terasa kusam berat, sekarang lebih nyaman aman dilayer sunscreen pagi.",
+                on_screen_text_id="Before After nyaman dilayer!",
             ),
             FlowScene(
                 scene_number=5,
@@ -559,8 +562,8 @@ def build_offline_demo_blueprint(
                 flow_prompt_en=(
                     f"Locked-off macro close-up. {subject_clause}, {setting_desc}. {neg_tail}"
                 ),
-                vo_script_id="Basis airnya memadukan Niacinamide lima persen dan Ceramide, meresap cepat tanpa mengganggu sunscreen.",
-                on_screen_text_id="5% Niacinamide water-base",
+                vo_script_id="Ini solusinya: formula cair Niacinamide lima persen plus Ceramide meresap hitungan detik tanpa residu.",
+                on_screen_text_id="5% Niacinamide + Ceramide",
             ),
             FlowScene(
                 scene_number=3,
@@ -575,8 +578,8 @@ def build_offline_demo_blueprint(
                     f"Seamless continuation from the previous frame, gentle pull-back shot. "
                     f"{subject_clause}, {setting_desc}. {neg_tail}"
                 ),
-                vo_script_id=f"Ukuran tiga puluh milinya awet sebulan lebih, langsung cek {cta_phrase} mumpung promo!",
-                on_screen_text_id="Awet 30ml · Cek bawah!",
+                vo_script_id=f"Dulu sebelum pakai wajah terasa berat kusam, sekarang jauh lebih nyaman ringan; cek {cta_phrase}!",
+                on_screen_text_id="Before After + Cek bawah!",
             ),
         ]
 

@@ -8,7 +8,11 @@ from pathlib import Path
 
 import streamlit as st
 
-from src.blueprint_engine import compose_full_15s_flow_prompt, count_words
+from src.blueprint_engine import (
+    audit_commercial_story_pillars,
+    compose_full_15s_flow_prompt,
+    count_words,
+)
 from src.compliance import audit_blueprint, sanitize_blueprint
 from src.config import (
     get_app_pin,
@@ -49,9 +53,10 @@ MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
 # Wide layout gives Laptop Studio a 2-column cockpit while Mobile mode/phones stack cleanly
 st.set_page_config(
-    page_title="Affiliate AI Video Director",
+    page_title="Affiliate AI Studio",
     page_icon=":material/movie_edit:",
     layout="wide",
+    initial_sidebar_state="collapsed",
 )
 
 cfg = load_config()
@@ -254,16 +259,14 @@ with st.sidebar:
             icon=":material/warning:",
         )
 
-# ── Main Header (Zero-Confusion 3-Step Intro) ────────────────────────────────
-st.title("Generator prompt Google Flow")
+# ── Main Header (Apple-Clean 3-Step Intro) ──────────────────────────────────
+st.title("Affiliate AI Studio")
 st.caption(
-    "Default aktif: pakai Foto Avatar + Suara Bahasa Indonesia yang menjelaskan produk. "
-    "Upload foto produk & foto avatar -> klik Buat Prompt -> Copy-Paste 1 kotak ke Google Flow."
+    "Upload foto produk -> Klik 1 tombol -> Copy-Paste 1 prompt komersial siap pakai ke Google Flow."
 )
 
-# ── Ultra-Simple Input Card (Product + Avatar Photo + Optional + Button) ─────
+# ── Streamlined Input Card (2 Uploaders -> Primary Button -> Collapsed Options) ──
 with st.container(border=True):
-    st.subheader("1. Upload foto produk & foto avatar")
     if is_laptop_mode:
         up_left, up_right = st.columns([1.15, 1.0], gap="medium")
     else:
@@ -272,7 +275,7 @@ with st.container(border=True):
 
     with up_left:
         product_files = st.file_uploader(
-            "Foto produk (1 foto atau 2–4 sudut depan/samping/belakang -> otomatis jadi Turnaround Sheet)",
+            "Foto produk (1 foto, atau 2–4 sudut depan/samping/belakang)",
             type=["png", "jpg", "jpeg", "webp"],
             accept_multiple_files=True,
             key="product_uploader",
@@ -302,21 +305,20 @@ with st.container(border=True):
                     try:
                         prev_cols[idx].image(
                             img_data,
-                            width=96,
+                            width=88,
                             alt=f"Gambar produk unggahan {idx + 1}",
                         )
                     except Exception:
                         prev_cols[idx].caption("Pratinjau tidak tersedia")
                 if len(valid_uploads) >= 2:
                     st.caption(
-                        f"Terdeteksi **{len(valid_uploads)} sudut foto** -> akan digabung otomatis "
-                        "menjadi 1 lembar **Turnaround Sheet** di Slot 1 Google Flow."
+                        f"{len(valid_uploads)} sudut digabung otomatis jadi 1 lembar **ProductAuthority.jpg**."
                     )
 
     with up_right:
         st.session_state.setdefault("saved_avatar_upload_sig", None)
         avatar_upload = st.file_uploader(
-            "Foto avatar Anda (upload 1x saja, tersimpan otomatis)",
+            "Foto wajah / Avatar (upload 1x saja, tersimpan otomatis)",
             type=["png", "jpg", "jpeg", "webp"],
             accept_multiple_files=False,
             key="avatar_photo_uploader",
@@ -339,8 +341,8 @@ with st.container(border=True):
         if saved_avatar_path is not None:
             st.image(
                 saved_avatar_path.read_bytes(),
-                width=110,
-                caption="Foto avatar aktif (siap dipakai di Google Flow)",
+                width=88,
+                caption="Avatar aktif",
                 alt="Foto avatar tersimpan",
             )
             if st.button(
@@ -350,10 +352,16 @@ with st.container(border=True):
             ):
                 delete_avatar_photo(profile_dir)
                 st.rerun()
-        else:
-            st.caption("Default aktif: pakai wajah Avatar + suara Bahasa Indonesia yang menjelaskan produk.")
 
-    with st.expander("Pengaturan tambahan (opsional — boleh langsung lewati)", icon=":material/tune:"):
+    generate_clicked = st.button(
+        "Buat Prompt Siap Pakai",
+        type="primary",
+        icon=":material/auto_awesome:",
+        width="stretch",
+        key="btn_generate_blueprint",
+    )
+
+    with st.expander("Opsi lanjutan (opsional)", icon=":material/tune:"):
         if is_laptop_mode:
             opt_left, opt_right = st.columns([1.0, 1.0], gap="medium")
         else:
@@ -476,14 +484,6 @@ with st.container(border=True):
                 height=90,
                 key="input_raw_specs",
             )
-
-    generate_clicked = st.button(
-        "Buat prompt Google Flow",
-        type="primary",
-        icon=":material/auto_awesome:",
-        width="stretch",
-        key="btn_generate_blueprint",
-    )
 
 active_platform_mode = PlatformMode(selected_platform_str or PlatformMode.SHOPEE.value)
 active_workflow_mode = WorkflowMode(selected_workflow_str or WorkflowMode.STORYBOARD_FIRST.value)
@@ -611,17 +611,25 @@ if record_obj is not None and comp_obj is not None:
     arts = st.session_state.get("artifacts", {})
     default_srt_path = Path(arts.get("capcut_srt", "")) if arts.get("capcut_srt") else None
 
-    # ── MAIN HERO OUTPUT CARD: 1x Copy-Paste (Suara + Script + Avatar) ─────
+    # ── MAIN RESULT CARD: 1 Copy-Paste Box + Clean Actions ──────────────────
     with st.container(border=True):
-        st.subheader("Siap pakai! 3 langkah di Google Flow")
-        st.caption(f"Produk: **{pa.product_name}**")
+        st.subheader(f"Siap pakai — {pa.product_name}")
+        pillars = audit_commercial_story_pillars(bp)
+        p_emosi = "✓" if pillars["emotion_pain"] else "•"
+        p_solusi = "✓" if (pillars["solution_usp"] and pillars["detail_review"]) else "•"
+        p_ba = "✓" if pillars["before_after"] else "•"
+        p_cta = "✓" if pillars["cta"] else "•"
+        st.caption(
+            f"Alur komersial: Emosi & Painful {p_emosi} · Solusi & Review Detail {p_solusi} · "
+            f"Before & After {p_ba} · CTA {p_cta}"
+        )
 
         clip_dur_labels = {
-            "15s": "15 detik utuh (Default — 1x Generate tanpa mengulang)",
-            "8s": "8 detik (Per adegan Veo)",
+            "15s": "15 detik utuh (1x jadi, tanpa mengulang)",
+            "8s": "8 detik (per adegan)",
         }
         selected_clip_dur = st.segmented_control(
-            "Durasi klip yang diatur di Google Flow",
+            "Durasi klip di Google Flow",
             options=list(clip_dur_labels.keys()),
             format_func=lambda k: clip_dur_labels[k],
             default="15s",
@@ -639,142 +647,32 @@ if record_obj is not None and comp_obj is not None:
                 else hero_scene.flow_prompt_en
             )
         )
-        hero_prompt_wc = count_words(hero_prompt)
-
-        voice_badge = (
-            ":violet-badge[:material/record_voice_over: Suara & Script Indonesia]"
-            if include_native_voice
-            else ":gray-badge[:material/videocam: Visual Saja]"
-        )
-        avatar_badge = (
-            ":blue-badge[:material/face: Avatar @me]"
-            if not live_profile.is_faceless
-            else ":gray-badge[:material/inventory_2: Produk Saja]"
-        )
-        dur_badge = (
-            ":green-badge[:material/timer: Durasi 15d utuh]"
-            if is_15s_clip
-            else ":green-badge[:material/timer: Durasi 8d / adegan]"
-        )
-        st.markdown(
-            f":green-badge[:material/aspect_ratio: Rasio {fs.aspect_ratio}] "
-            f"{dur_badge} "
-            f"{voice_badge} "
-            f"{avatar_badge} "
-            f":orange-badge[:material/short_text: {hero_prompt_wc} kata] "
-            f":gray-badge[:material/memory: {record_obj.model_used}]"
-        )
-        if record_obj.fallback_reason:
-            st.caption(
-                f"Info koneksi AI: {record_obj.fallback_reason} -> otomatis dialihkan ke OpenRouter."
-            )
 
         if is_laptop_mode:
-            hero_left, hero_right = st.columns([1.45, 1.0], gap="medium")
+            assets_col, prompt_col = st.columns([1.0, 1.5], gap="medium")
         else:
-            hero_left = nullcontext()
-            hero_right = nullcontext()
+            assets_col = nullcontext()
+            prompt_col = nullcontext()
 
-        with hero_left:
-            dur_step_hint = "atur durasi **15s**" if is_15s_clip else "atur durasi **5-8s**"
-            st.markdown(
-                f"""
-1. **Siapkan 2 foto** di samping: **Foto Produk** (download jika belum) dan **Foto Avatar** Anda.
-2. **Buka Google Flow** -> buat project baru -> pilih **Videos (9:16)** -> {dur_step_hint} -> klik **`+`** lalu unggah foto produk & foto avatar tadi.
-3. **Klik ikon Copy** di kanan atas kotak di bawah -> **Paste** ke Google Flow -> klik **Generate** (otomatis keluar video + suara Bahasa Indonesia tanpa mengulang!).
-""".strip()
-            )
-            st.markdown("**Prompt Google Flow — Suara, Script & Avatar (cukup 1x Copy-Paste):**")
-            st.code(hero_prompt, language="text", wrap_lines=True)
-
-            st.markdown("**Script suara (VO) penjelasan produk:**")
-            st.code(cf.full_vo_script_id, language="text", wrap_lines=True)
-
-            if st.button(
-                "Buat audio MP3 + SRT sinkron suara Indonesia",
-                icon=":material/graphic_eq:",
-                width="stretch",
-                key="btn_tts_mp3",
-            ):
-                with st.spinner("Menghasilkan vo_capcut.mp3 & subtitle SRT sinkron per kata..."):
-                    try:
-                        proj_dir = Path(st.session_state["project_dir"])
-                        mp3_out = proj_dir / "vo_capcut.mp3"
-                        srt_out = proj_dir / "vo_capcut.srt"
-                        synthesize_vo_mp3(
-                            text=cf.full_vo_script_id,
-                            output_mp3=mp3_out,
-                            voice=selected_tts_voice,
-                            rate=str(cfg.get("tts", {}).get("default_rate", "+6%")),
-                            output_srt=srt_out,
-                        )
-                        st.session_state["generated_vo_mp3"] = str(mp3_out)
-                        st.session_state["generated_vo_srt"] = str(srt_out)
-                    except Exception as exc:
-                        st.error(str(exc), title="Gagal membuat audio MP3", icon=":material/error:")
-
-            mp3_saved = st.session_state.get("generated_vo_mp3")
-            srt_saved = st.session_state.get("generated_vo_srt")
-            if mp3_saved and Path(mp3_saved).is_file():
-                mp3_bytes = Path(mp3_saved).read_bytes()
-                st.audio(mp3_bytes, format="audio/mp3")
-                st.download_button(
-                    "Download vo_capcut.mp3",
-                    data=mp3_bytes,
-                    file_name="vo_capcut.mp3",
-                    mime="audio/mp3",
-                    icon=":material/download:",
-                    width="stretch",
-                    key="btn_dl_vo_mp3",
-                )
-                if srt_saved and Path(srt_saved).is_file():
-                    st.download_button(
-                        "Download vo_capcut.srt (sinkron suara)",
-                        data=Path(srt_saved).read_bytes(),
-                        file_name="vo_capcut.srt",
-                        mime="text/plain",
-                        icon=":material/closed_caption:",
-                        width="stretch",
-                        key="btn_dl_vo_srt",
-                    )
-
-            if default_srt_path and default_srt_path.is_file():
-                st.download_button(
-                    "Download subtitle CapCut (.srt)",
-                    data=default_srt_path.read_bytes(),
-                    file_name="capcut_subtitles.srt",
-                    mime="text/plain",
-                    icon=":material/subtitles:",
-                    width="stretch",
-                    key="btn_dl_default_srt",
-                )
-
-        with hero_right:
+        with assets_col:
             if cropped_path and cropped_path.is_file():
                 crop_bytes = cropped_path.read_bytes()
                 is_multi_angle = len(st.session_state.get("cached_product_images", [])) >= 2
-                prod_img_caption = (
-                    "Turnaround Sheet multi-sudut siap upload (Slot 1)"
-                    if is_multi_angle
-                    else "Foto produk bersih siap upload"
-                )
                 prod_dl_label = (
-                    "Download Turnaround Sheet produk (.jpg)"
+                    "1. Download ProductAuthority.jpg (Multi-Sudut)"
                     if is_multi_angle
-                    else "Download foto produk (.jpg)"
+                    else "1. Download ProductAuthority.jpg"
                 )
                 st.image(
                     crop_bytes,
-                    width=160,
-                    caption=prod_img_caption,
-                    alt="Foto produk bersih siap upload ke Google Flow",
+                    width=130,
+                    alt="Foto produk bersih ProductAuthority siap upload ke Google Flow",
                 )
                 st.download_button(
                     prod_dl_label,
                     data=crop_bytes,
-                    file_name=cropped_path.name,
+                    file_name="ProductAuthority.jpg",
                     mime="image/jpeg",
-                    type="primary",
                     icon=":material/download:",
                     width="stretch",
                     key="btn_dl_ing_clean",
@@ -784,12 +682,11 @@ if record_obj is not None and comp_obj is not None:
                 avatar_bytes = saved_avatar_out.read_bytes()
                 st.image(
                     avatar_bytes,
-                    width=140,
-                    caption="Foto avatar tersimpan",
+                    width=110,
                     alt="Foto avatar siap upload ke Google Flow",
                 )
                 st.download_button(
-                    "Download foto avatar (.jpg)",
+                    "Download avatar_photo.jpg",
                     data=avatar_bytes,
                     file_name="avatar_photo.jpg",
                     mime="image/jpeg",
@@ -798,28 +695,39 @@ if record_obj is not None and comp_obj is not None:
                     key="btn_dl_avatar_photo",
                 )
             elif not live_profile.is_faceless:
-                st.info(
-                    "Upload foto wajah Anda di kotak **Foto avatar Anda** di atas agar otomatis dipakai sebagai wajah presenter di Google Flow.",
-                    title="Belum ada foto avatar",
-                    icon=":material/face:",
-                )
+                st.caption("Belum ada foto wajah? Upload di kotak **Foto wajah / Avatar** di atas.")
 
             st.link_button(
-                "Buka Google Flow",
+                "2. Buka Google Flow",
                 "https://labs.google/fx/tools/flow",
+                type="primary",
                 icon=":material/open_in_new:",
                 width="stretch",
             )
 
+        with prompt_col:
+            dur_step_hint = "atur durasi **15s**" if is_15s_clip else "atur durasi **5-8s**"
+            st.markdown(
+                f"""
+1. **Download foto** di samping (`ProductAuthority.jpg` & `avatar_photo.jpg`).
+2. Klik **2. Buka Google Flow** -> **New project** -> **Videos (9:16)** -> {dur_step_hint} -> klik **`+`** lalu upload fotonya.
+3. **Copy kotak di bawah -> Paste ke Google Flow -> klik Generate.**
+""".strip()
+            )
+            st.code(hero_prompt, language="text", wrap_lines=True)
+            st.caption(
+                "Tips: jika `@ProductAuthority` belum jadi tag biru di Google Flow, hapus kata itu lalu ketik **`@`** dan pilih **`ProductAuthority.jpg`**."
+            )
+
             with st.container(horizontal=True):
                 regen_hook_clicked = st.button(
-                    "Ganti hook",
+                    "Ganti Hook",
                     icon=":material/refresh:",
                     width="stretch",
                     key="btn_regenerate_hook",
                 )
                 regen_all_clicked = st.button(
-                    "Buat ulang variasi",
+                    "Buat Ulang",
                     icon=":material/shuffle:",
                     width="stretch",
                     key="btn_regenerate_all",
@@ -886,222 +794,281 @@ if record_obj is not None and comp_obj is not None:
                 safe_err = redact_secrets(str(exc), [active_gemini_key, active_or_key])
                 st.error(safe_err, title="Gagal membuat variasi baru", icon=":material/error:")
 
-    # ── OPTIONAL EXPANDER 1: Lanjut Adegan 2..N ──────────────────────────────
-    if len(bp.scenes) > 1:
-        with st.expander(
-            f"Lanjut adegan 2 sampai {len(bp.scenes)} (sudah pakai suara & script)",
-            icon=":material/movie:",
-        ):
-            st.info(
-                "Bisa langsung di Google Flow tanpa extract video manual:\n"
-                "- **Cara 1 (`Extend`):** Klik tombol **Extend** pada akhir klip Scene 1.\n"
-                "- **Cara 2 (`Save frame` -> `Start frame`):** Jeda (*Pause*) video Scene 1 di frame terakhir -> "
-                "arahkan kursor dan klik **`Save frame`** -> jadikan gambar tersebut **`Start frame`** Scene 2 agar bentuk produk & wajah tetap 100% konsisten.",
-                title="Tips menyambung scene langsung di Google Flow",
-                icon=":material/photo_camera:",
-            )
-            for scene in bp.scenes[1:]:
-                scene_prompt = (
-                    scene.flow_voice_prompt_en
-                    if (include_native_voice and scene.flow_voice_prompt_en)
-                    else scene.flow_prompt_en
-                )
-                if scene.flow_action == "Extend":
-                    plain_guide = "Di Google Flow, klik tombol **Extend** pada klip sebelumnya, lalu **Paste** prompt ini:"
-                else:
-                    plain_guide = "Di Google Flow, klik tombol **Jump to** (atau pasang `Save frame` klip 1 ke **Start frame** + **Turnaround Sheet**), lalu **Paste** prompt ini:"
-                st.markdown(f"**Adegan {scene.scene_number} ({scene.role})** — {plain_guide}")
-                st.code(scene_prompt, language="text", wrap_lines=True)
-                st.caption(f"Naskah VO adegan {scene.scene_number}: {scene.vo_script_id}")
-
-    # ── OPTIONAL EXPANDER 2: Caption Shopee/TikTok, Pinned Comment FAQ & CapCut ──
+    # ── SINGLE COLLAPSED EXTRAS EXPANDER (Voice/MP3/Caption, Adegan 2..N, Pro) ──
     with st.expander(
-        "Caption Shopee/TikTok, Pinned Comment FAQ & tips CapCut (opsional)",
-        icon=":material/subtitles:",
+        "Alat tambahan: Audio MP3, Caption, Adegan 2–N & Mode Pro (opsional)",
+        icon=":material/widgets:",
     ):
-        if record_obj.platform_mode in (PlatformMode.SHOPEE, PlatformMode.BOTH):
-            st.markdown("**1. Caption & hashtag Shopee Video:**")
-            st.code(cf.shopee_caption_and_hashtags, language="text", wrap_lines=True)
+        tab_vo, tab_scenes, tab_pro = st.tabs(["Suara & Caption", "Adegan 2–N", "Mode Pro"])
 
-        if record_obj.platform_mode in (PlatformMode.TIKTOK, PlatformMode.BOTH) and cf.tiktok_caption_and_hashtags.strip():
-            st.markdown("**Caption & hashtag TikTok Shop:**")
-            st.code(cf.tiktok_caption_and_hashtags, language="text", wrap_lines=True)
+        with tab_vo:
+            st.markdown("**Naskah suara (VO) penjelasan produk:**")
+            st.code(cf.full_vo_script_id, language="text", wrap_lines=True)
 
-        st.markdown("**2. Pinned comment FAQ (salin & tempel di komentar pertama video):**")
-        st.code(pk.pinned_comment_faq_id, language="text", wrap_lines=True)
-
-        st.info(
-            f"**BGM:** {cf.bgm_vibe_suggestion}\n\n**Tips CapCut:** {cf.pacing_tips}",
-            title="Saran BGM & editing CapCut",
-            icon=":material/content_cut:",
-        )
-        st.warning(
-            cf.compliance_reminder,
-            title="Syarat wajib kepatuhan platform",
-            icon=":material/verified_user:",
-        )
-
-    # ── OPTIONAL EXPANDER 3: Mode Pro (Storyboard Grid, Auto-Split, Crop & Specs) ──
-    with st.expander(
-        "Mode pro: storyboard grid, potong otomatis, crop foto & detail produk (opsional)",
-        icon=":material/build:",
-    ):
-        if has_raw_upload:
-            st.markdown("**Atur ulang batas crop foto produk (jika ujung bawah masih terpotong):**")
-            top_crop = st.slider(
-                "Potong bar atas (%)",
-                min_value=0,
-                max_value=30,
-                value=8,
-                key="slider_crop_top",
-            )
-            bot_crop = st.slider(
-                "Potong bar bawah (% — 0% jika bukan screenshot)",
-                min_value=0,
-                max_value=50,
-                value=24,
-                key="slider_crop_bot",
-            )
             if st.button(
-                "Terapkan ulang crop",
-                icon=":material/crop_free:",
+                "Buat audio MP3 + SRT sinkron suara Indonesia",
+                icon=":material/graphic_eq:",
                 width="stretch",
-                key="btn_recrop",
+                key="btn_tts_mp3",
             ):
-                proj_dir = Path(st.session_state["project_dir"])
-                new_crop_p, _ = save_product_authority_image(
-                    st.session_state["cached_product_images"][:4],
-                    output_dir=proj_dir / "input",
-                    top_crop_pct=top_crop / 100.0,
-                    bottom_crop_pct=bot_crop / 100.0,
-                )
-                record_obj = record_obj.model_copy(update={"cropped_ingredient_path": str(new_crop_p)})
-                st.session_state["record"] = record_obj
-                st.rerun()
+                with st.spinner("Menghasilkan vo_capcut.mp3 & subtitle SRT sinkron per kata..."):
+                    try:
+                        proj_dir = Path(st.session_state["project_dir"])
+                        mp3_out = proj_dir / "vo_capcut.mp3"
+                        srt_out = proj_dir / "vo_capcut.srt"
+                        synthesize_vo_mp3(
+                            text=cf.full_vo_script_id,
+                            output_mp3=mp3_out,
+                            voice=selected_tts_voice,
+                            rate=str(cfg.get("tts", {}).get("default_rate", "+6%")),
+                            output_srt=srt_out,
+                        )
+                        st.session_state["generated_vo_mp3"] = str(mp3_out)
+                        st.session_state["generated_vo_srt"] = str(srt_out)
+                    except Exception as exc:
+                        st.error(str(exc), title="Gagal membuat audio MP3", icon=":material/error:")
 
-        st.markdown(f"**Prompt Contact Sheet Grid Storyboard ({fs.storyboard_grid_layout} — Nano Banana / Flow Image Mode):**")
-        st.code(fs.storyboard_grid_prompt_en, language="text", wrap_lines=True)
-
-        st.markdown("**Prompt Gambar Keyframe per Adegan (Nano Banana):**")
-        for scene in bp.scenes:
-            if scene.keyframe_image_prompt_en:
-                st.caption(f"Adegan {scene.scene_number} ({scene.role})")
-                st.code(scene.keyframe_image_prompt_en, language="text", wrap_lines=True)
-
-        st.markdown("**Prompt Start-to-End Frame (transisi antar posisi anti-ubah bentuk):**")
-        st.code(fs.start_to_end_prompt_en, language="text", wrap_lines=True)
-
-        st.divider()
-        st.markdown("**Potong Otomatis Gambar Grid Storyboard -> Keyframe 1..N:**")
-        grid_options = ["2x2", "3x2", "2x3", "3x3"]
-        default_grid_idx = (
-            grid_options.index(fs.storyboard_grid_layout)
-            if fs.storyboard_grid_layout in grid_options
-            else 0
-        )
-        chosen_grid = st.selectbox(
-            "Tata letak panel grid",
-            options=grid_options,
-            index=default_grid_idx,
-            key="select_grid_split_layout",
-        )
-        trim_pct = st.slider(
-            "Buang garis pembatas panel (%)",
-            min_value=0.0,
-            max_value=5.0,
-            value=1.5,
-            step=0.5,
-            key="slider_grid_trim_pct",
-        )
-        grid_upload = st.file_uploader(
-            "Upload gambar Contact Sheet Grid hasil Nano Banana",
-            type=["png", "jpg", "jpeg", "webp"],
-            key="grid_splitter_uploader",
-        )
-        if grid_upload is not None:
-            try:
-                cols_n, rows_n = parse_grid_layout(chosen_grid)
-                split_imgs = split_storyboard_grid(
-                    grid_upload.getvalue(),
-                    cols=cols_n,
-                    rows=rows_n,
-                    trim_margin_pct=trim_pct / 100.0,
-                )
-                zip_bytes = build_frames_zip(split_imgs, prefix="keyframe")
+            mp3_saved = st.session_state.get("generated_vo_mp3")
+            srt_saved = st.session_state.get("generated_vo_srt")
+            if mp3_saved and Path(mp3_saved).is_file():
+                mp3_bytes = Path(mp3_saved).read_bytes()
+                st.audio(mp3_bytes, format="audio/mp3")
                 st.download_button(
-                    f"Download semua {len(split_imgs)} keyframe (.zip)",
-                    data=zip_bytes,
-                    file_name=f"{record_obj.project_id}_keyframes.zip",
-                    mime="application/zip",
-                    type="primary",
-                    icon=":material/folder_zip:",
+                    "Download vo_capcut.mp3",
+                    data=mp3_bytes,
+                    file_name="vo_capcut.mp3",
+                    mime="audio/mp3",
+                    icon=":material/download:",
                     width="stretch",
-                    key="btn_dl_keyframes_zip",
+                    key="btn_dl_vo_mp3",
                 )
-                g_cols = st.columns(min(cols_n, 3))
-                for f_idx, f_bytes in enumerate(split_imgs, start=1):
-                    c_slot = g_cols[(f_idx - 1) % len(g_cols)]
-                    c_slot.image(
-                        f_bytes,
-                        width=120,
-                        caption=f"Keyframe {f_idx}",
-                        alt=f"Keyframe {f_idx} hasil split grid",
-                    )
-                    c_slot.download_button(
-                        f"Frame {f_idx}",
-                        data=f_bytes,
-                        file_name=f"keyframe_{f_idx}.jpg",
-                        mime="image/jpeg",
+                if srt_saved and Path(srt_saved).is_file():
+                    st.download_button(
+                        "Download vo_capcut.srt (sinkron suara)",
+                        data=Path(srt_saved).read_bytes(),
+                        file_name="vo_capcut.srt",
+                        mime="text/plain",
+                        icon=":material/closed_caption:",
                         width="stretch",
-                        key=f"btn_dl_split_frame_{f_idx}",
+                        key="btn_dl_vo_srt",
                     )
-            except Exception as exc:
-                st.error(str(exc), title="Gagal memotong grid", icon=":material/error:")
 
-        st.divider()
-        st.markdown("**Detail Product Knowledge & Nilai Tambah:**")
-        if pk.competitor_differentiator_angle:
-            st.success(
-                pk.competitor_differentiator_angle,
-                title="Pembeda ulasan",
-                icon=":material/workspace_premium:",
-            )
-        for spec_item in pk.technical_specs_and_materials:
-            st.markdown(f"- {spec_item}")
-        if pk.how_it_works_or_usage_tip:
-            st.markdown(f"**Tips pakai / mekanisme kerja:** {pk.how_it_works_or_usage_tip}")
-        if pk.top_buyer_objection_and_answer:
+            if default_srt_path and default_srt_path.is_file():
+                st.download_button(
+                    "Download subtitle CapCut (.srt)",
+                    data=default_srt_path.read_bytes(),
+                    file_name="capcut_subtitles.srt",
+                    mime="text/plain",
+                    icon=":material/subtitles:",
+                    width="stretch",
+                    key="btn_dl_default_srt",
+                )
+
+            if record_obj.platform_mode in (PlatformMode.SHOPEE, PlatformMode.BOTH):
+                st.markdown("**Caption & hashtag Shopee Video:**")
+                st.code(cf.shopee_caption_and_hashtags, language="text", wrap_lines=True)
+
+            if record_obj.platform_mode in (PlatformMode.TIKTOK, PlatformMode.BOTH) and cf.tiktok_caption_and_hashtags.strip():
+                st.markdown("**Caption & hashtag TikTok Shop:**")
+                st.code(cf.tiktok_caption_and_hashtags, language="text", wrap_lines=True)
+
+            st.markdown("**Pinned comment FAQ (salin & tempel di komentar pertama video):**")
+            st.code(pk.pinned_comment_faq_id, language="text", wrap_lines=True)
+
             st.info(
-                pk.top_buyer_objection_and_answer,
-                title="Objection killer",
-                icon=":material/quiz:",
+                f"**BGM:** {cf.bgm_vibe_suggestion}\n\n**Tips CapCut:** {cf.pacing_tips}",
+                title="Saran BGM & editing CapCut",
+                icon=":material/content_cut:",
             )
-        if pk.honest_pros_and_ideal_buyer:
-            st.caption(f"**Paling cocok untuk:** {pk.honest_pros_and_ideal_buyer}")
+            st.warning(
+                cf.compliance_reminder,
+                title="Syarat wajib kepatuhan platform",
+                icon=":material/verified_user:",
+            )
 
-        st.markdown("**Checklist Internal @ProductAuthority & Visual Bible:**")
-        st.code(fs.exact_product_geometry_lock_en, language="text", wrap_lines=True)
-        st.code(fs.locked_visual_bible_en, language="text", wrap_lines=True)
+        with tab_scenes:
+            if len(bp.scenes) <= 1:
+                st.caption("Blueprint saat ini hanya memiliki 1 adegan.")
+            else:
+                st.info(
+                    "Bisa langsung di Google Flow tanpa extract video manual:\n"
+                    "- **Cara 1 (`Extend`):** Klik tombol **Extend** pada akhir klip Scene 1.\n"
+                    "- **Cara 2 (`Save frame` -> `Start frame`):** Jeda (*Pause*) video Scene 1 di frame terakhir -> "
+                    "arahkan kursor dan klik **`Save frame`** -> jadikan gambar tersebut **`Start frame`** Scene 2 agar bentuk produk & wajah tetap 100% konsisten.",
+                    title="Tips menyambung scene langsung di Google Flow",
+                    icon=":material/photo_camera:",
+                )
+                for scene in bp.scenes[1:]:
+                    scene_prompt = (
+                        scene.flow_voice_prompt_en
+                        if (include_native_voice and scene.flow_voice_prompt_en)
+                        else scene.flow_prompt_en
+                    )
+                    if scene.flow_action == "Extend":
+                        plain_guide = "Di Google Flow, klik tombol **Extend** pada klip sebelumnya, lalu **Paste** prompt ini:"
+                    else:
+                        plain_guide = "Di Google Flow, klik tombol **Jump to** (atau pasang `Save frame` klip 1 ke **Start frame** + **ProductAuthority.jpg**), lalu **Paste** prompt ini:"
+                    st.markdown(f"**Adegan {scene.scene_number} ({scene.role})** — {plain_guide}")
+                    st.code(scene_prompt, language="text", wrap_lines=True)
+                    st.caption(f"Naskah VO adegan {scene.scene_number}: {scene.vo_script_id}")
 
-        if arts:
-            with st.container(horizontal=True):
-                md_file = Path(arts.get("blueprint_md", ""))
-                js_file = Path(arts.get("blueprint_json", ""))
-                if md_file.is_file():
-                    st.download_button(
-                        "Simpan .md",
-                        data=md_file.read_bytes(),
-                        file_name=md_file.name,
-                        icon=":material/description:",
-                        width="stretch",
-                        key="btn_dl_md",
+        with tab_pro:
+            if has_raw_upload:
+                st.markdown("**Atur ulang batas crop foto produk (jika ujung bawah masih terpotong):**")
+                top_crop = st.slider(
+                    "Potong bar atas (%)",
+                    min_value=0,
+                    max_value=30,
+                    value=8,
+                    key="slider_crop_top",
+                )
+                bot_crop = st.slider(
+                    "Potong bar bawah (% — 0% jika bukan screenshot)",
+                    min_value=0,
+                    max_value=50,
+                    value=24,
+                    key="slider_crop_bot",
+                )
+                if st.button(
+                    "Terapkan ulang crop",
+                    icon=":material/crop_free:",
+                    width="stretch",
+                    key="btn_recrop",
+                ):
+                    proj_dir = Path(st.session_state["project_dir"])
+                    new_crop_p, _ = save_product_authority_image(
+                        st.session_state["cached_product_images"][:4],
+                        output_dir=proj_dir / "input",
+                        top_crop_pct=top_crop / 100.0,
+                        bottom_crop_pct=bot_crop / 100.0,
                     )
-                if js_file.is_file():
-                    st.download_button(
-                        "Simpan .json",
-                        data=js_file.read_bytes(),
-                        file_name=js_file.name,
-                        icon=":material/data_object:",
-                        width="stretch",
-                        key="btn_dl_json",
+                    record_obj = record_obj.model_copy(update={"cropped_ingredient_path": str(new_crop_p)})
+                    st.session_state["record"] = record_obj
+                    st.rerun()
+
+            st.markdown(f"**Prompt Contact Sheet Grid Storyboard ({fs.storyboard_grid_layout} — Nano Banana / Flow Image Mode):**")
+            st.code(fs.storyboard_grid_prompt_en, language="text", wrap_lines=True)
+
+            st.markdown("**Prompt Gambar Keyframe per Adegan (Nano Banana):**")
+            for scene in bp.scenes:
+                if scene.keyframe_image_prompt_en:
+                    st.caption(f"Adegan {scene.scene_number} ({scene.role})")
+                    st.code(scene.keyframe_image_prompt_en, language="text", wrap_lines=True)
+
+            st.markdown("**Prompt Start-to-End Frame (transisi antar posisi anti-ubah bentuk):**")
+            st.code(fs.start_to_end_prompt_en, language="text", wrap_lines=True)
+
+            st.divider()
+            st.markdown("**Potong Otomatis Gambar Grid Storyboard -> Keyframe 1..N:**")
+            grid_options = ["2x2", "3x2", "2x3", "3x3"]
+            default_grid_idx = (
+                grid_options.index(fs.storyboard_grid_layout)
+                if fs.storyboard_grid_layout in grid_options
+                else 0
+            )
+            chosen_grid = st.selectbox(
+                "Tata letak panel grid",
+                options=grid_options,
+                index=default_grid_idx,
+                key="select_grid_split_layout",
+            )
+            trim_pct = st.slider(
+                "Buang garis pembatas panel (%)",
+                min_value=0.0,
+                max_value=5.0,
+                value=1.5,
+                step=0.5,
+                key="slider_grid_trim_pct",
+            )
+            grid_upload = st.file_uploader(
+                "Upload gambar Contact Sheet Grid hasil Nano Banana",
+                type=["png", "jpg", "jpeg", "webp"],
+                key="grid_splitter_uploader",
+            )
+            if grid_upload is not None:
+                try:
+                    cols_n, rows_n = parse_grid_layout(chosen_grid)
+                    split_imgs = split_storyboard_grid(
+                        grid_upload.getvalue(),
+                        cols=cols_n,
+                        rows=rows_n,
+                        trim_margin_pct=trim_pct / 100.0,
                     )
+                    zip_bytes = build_frames_zip(split_imgs, prefix="keyframe")
+                    st.download_button(
+                        f"Download semua {len(split_imgs)} keyframe (.zip)",
+                        data=zip_bytes,
+                        file_name=f"{record_obj.project_id}_keyframes.zip",
+                        mime="application/zip",
+                        type="primary",
+                        icon=":material/folder_zip:",
+                        width="stretch",
+                        key="btn_dl_keyframes_zip",
+                    )
+                    g_cols = st.columns(min(cols_n, 3))
+                    for f_idx, f_bytes in enumerate(split_imgs, start=1):
+                        c_slot = g_cols[(f_idx - 1) % len(g_cols)]
+                        c_slot.image(
+                            f_bytes,
+                            width=120,
+                            caption=f"Keyframe {f_idx}",
+                            alt=f"Keyframe {f_idx} hasil split grid",
+                        )
+                        c_slot.download_button(
+                            f"Frame {f_idx}",
+                            data=f_bytes,
+                            file_name=f"keyframe_{f_idx}.jpg",
+                            mime="image/jpeg",
+                            width="stretch",
+                            key=f"btn_dl_split_frame_{f_idx}",
+                        )
+                except Exception as exc:
+                    st.error(str(exc), title="Gagal memotong grid", icon=":material/error:")
+
+            st.divider()
+            st.markdown("**Detail Product Knowledge & Nilai Tambah:**")
+            if pk.competitor_differentiator_angle:
+                st.success(
+                    pk.competitor_differentiator_angle,
+                    title="Pembeda ulasan",
+                    icon=":material/workspace_premium:",
+                )
+            for spec_item in pk.technical_specs_and_materials:
+                st.markdown(f"- {spec_item}")
+            if pk.how_it_works_or_usage_tip:
+                st.markdown(f"**Tips pakai / mekanisme kerja:** {pk.how_it_works_or_usage_tip}")
+            if pk.top_buyer_objection_and_answer:
+                st.info(
+                    pk.top_buyer_objection_and_answer,
+                    title="Objection killer",
+                    icon=":material/quiz:",
+                )
+            if pk.honest_pros_and_ideal_buyer:
+                st.caption(f"**Paling cocok untuk:** {pk.honest_pros_and_ideal_buyer}")
+
+            st.markdown("**Checklist Internal @ProductAuthority & Visual Bible:**")
+            st.code(fs.exact_product_geometry_lock_en, language="text", wrap_lines=True)
+            st.code(fs.locked_visual_bible_en, language="text", wrap_lines=True)
+
+            if arts:
+                with st.container(horizontal=True):
+                    md_file = Path(arts.get("blueprint_md", ""))
+                    js_file = Path(arts.get("blueprint_json", ""))
+                    if md_file.is_file():
+                        st.download_button(
+                            "Simpan .md",
+                            data=md_file.read_bytes(),
+                            file_name=md_file.name,
+                            icon=":material/description:",
+                            width="stretch",
+                            key="btn_dl_md",
+                        )
+                    if js_file.is_file():
+                        st.download_button(
+                            "Simpan .json",
+                            data=js_file.read_bytes(),
+                            file_name=js_file.name,
+                            icon=":material/data_object:",
+                            width="stretch",
+                            key="btn_dl_json",
+                        )
