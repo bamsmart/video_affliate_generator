@@ -45,6 +45,11 @@ class PlatformMode(str, Enum):
     BOTH = "both"
 
 
+class WorkflowMode(str, Enum):
+    STORYBOARD_FIRST = "storyboard_first"
+    DIRECT_INGREDIENTS = "direct_ingredients"
+
+
 class TalentSavedProfile(BaseModel):
     """Lightweight text-only Google Flow Avatar & speaking style preset (zero photo/voice upload in app)."""
 
@@ -184,23 +189,48 @@ class FlowSetup(BaseModel):
     )
     exact_product_geometry_lock_en: str = Field(
         default=(
-            "Exact 1:1 physical geometry, silhouette, frame, base, and bottle proportions, "
-            "locked static leg and structural silhouette, surface colors, joint details, "
-            "and original front typography matching the uploaded Product Ingredient photo"
+            "Reference @ProductAuthority checklist: exact silhouette, structural proportions, surface color, and original branding."
         ),
         min_length=1,
         description=(
-            "Deskripsi forensik Bahasa Inggris POSITIF (tanpa kata larangan 'do not'/'no' dan tanpa tanda kutip) "
-            "tentang BENTUK FISIK PERSIS yang terlihat nyata di foto produk (struktur kaki/rangka/botol/kemasan, "
-            "warna tiap tiang/kaki/komponen, sambungan, proporsi, posisi & isi logo asli)."
+            "Ringkasan internal Product Authority untuk checklist pengguna (TIDAK disalin ke dalam `flow_prompt_en` "
+            "agar prompt Google Flow tidak mendeskripsikan ulang detail fisik yang sudah dikunci oleh gambar `@ProductAuthority`)."
+        ),
+    )
+    start_to_end_prompt_en: str = Field(
+        default=(
+            "Locked-off static camera transition using start and end frame with @ProductAuthority. "
+            "Seamless lighting shift from cool shade to warm sunlight. "
+            "No text overlays, no additional logos, no readable screens."
+        ),
+        min_length=1,
+        description=(
+            "Prompt singkat (<= 35 kata) siap tempel ke fitur Start-to-End Frame Google Flow yang hanya mengarahkan "
+            "gerak kamera + transisi cahaya memakai @ProductAuthority + batasan negatif eksplisit."
+        ),
+    )
+    storyboard_grid_layout: str = Field(
+        default="2x2",
+        description="Tata letak Contact Sheet Grid untuk Nano Banana / Google Flow Image Mode ('2x2', '3x2', atau '3x3').",
+    )
+    storyboard_grid_prompt_en: str = Field(
+        default=(
+            "Clean 2x2 vertical storyboard contact sheet grid on 9:16 panels. "
+            "Use @ProductAuthority cleanly with uniform lighting and framing across all panels. "
+            "No text overlays, no additional logos, no readable screens."
+        ),
+        min_length=1,
+        description=(
+            "1 prompt Contact Sheet Grid Bahasa Inggris siap tempel ke Nano Banana / Google Flow Image Mode "
+            "untuk menghasilkan beberapa panel keyframe seragam dalam satu kanvas sebelum dipotong menjadi Start Frames."
         ),
     )
     locked_visual_bible_en: str = Field(
         ...,
         min_length=1,
         description=(
-            "Satu paragraf Bahasa Inggris positif yang mengunci 1 lokasi konsisten, pencahayaan, color grading, "
-            "lensa kamera, identitas Avatar Indonesia @me (jika ada talent), dan geometri fisik produk yang konsisten 1:1."
+            "Arahan singkat konsistensi lokasi, pencahayaan, dan rasio 9:16 sebagai acuan Master Frame "
+            "(tanpa mendeskripsikan ulang wujud fisik produk dari @ProductAuthority)."
         ),
     )
 
@@ -217,7 +247,7 @@ class FlowScene(BaseModel):
         description=(
             "Tombol aksi di Google Flow Scene Builder: 'New Scene' (wajib untuk Scene 1), "
             "'Extend' (lanjut mulus dari frame terakhir tanpa cut kamera), atau "
-            "'Jump to' (pindah sudut kamera/close-up dengan objek & lokasi tetap)."
+            "'Jump to' (pindah sudut kamera dengan objek & Master Frame tetap)."
         ),
     )
     duration_sec: int = Field(
@@ -231,15 +261,29 @@ class FlowScene(BaseModel):
         min_length=1,
         description="Penjelasan Bahasa Indonesia bagaimana aksi awal/akhir adegan ini menyambung dengan adegan sebelah.",
     )
+    keyframe_image_prompt_en: str = Field(
+        default="",
+        description=(
+            "Prompt gambar statis 9:16 untuk Nano Banana / Flow Image Mode (<= 35 kata) untuk membuat keyframe "
+            "adegan ini dari @ProductAuthority (& @me jika mode Avatar) sebelum dianimasikan di Frames to Video."
+        ),
+    )
     flow_prompt_en: str = Field(
         ...,
         min_length=1,
         description=(
-            "Prompt visual Veo 3.1 / Google Flow Bahasa Inggris linear (~80-135 kata), TANPA tanda kurung siku `[...]`, "
-            "TANPA tanda kutip ganda, dan HANYA memakai kalimat afirmatif positif (tanpa kata 'do not', 'no', 'Western', 'Caucasian', 'broken', 'fold'). "
-            "Susun 5 bagian: (1) Cinematography & 9:16 lens (untuk Extend wajib diawali 'Seamless continuation from the previous frame,'), "
-            "(2) Subject '@me' Indonesia / tangan Indonesia, (3) Geometri fisik produk 1:1 + kontak fisik mantap pada permukaan, "
-            "(4) Satu aksi mikro 5 detik, (5) Lokasi & pencahayaan terkunci + 'Audio: quiet natural ambient soundscape and crisp realistic product foley only, silent presenter.'"
+            "Prompt Google Flow minimalis anti-halu (WAJIB singkat 20-35 kata) dengan rumus: "
+            "[Camera/Motion] + [Use @ProductAuthority (+ @me Indonesian presenter jika mode Avatar)] + [Brief Lighting/Environment] + "
+            "[No text overlays, no additional logos, no readable screens.]. "
+            "DILARANG mendeskripsikan ulang bentuk/warna/label produk, dilarang kata kerja naratif (walks toward, picks up, opens, fold/unfold), "
+            "tanpa kurung siku `[...]`, dan tanpa tanda kutip ganda."
+        ),
+    )
+    flow_voice_prompt_en: str = Field(
+        default="",
+        description=(
+            "Prompt Google Flow siap tempel (default) yang menggabungkan kunci visual anti-halu "
+            "dengan arahan suara Bahasa Indonesia natural & lip-sync untuk mengucapkan `vo_script_id`."
         ),
     )
     vo_script_id: str = Field(
@@ -318,6 +362,7 @@ class SavedBlueprintRecord(BaseModel):
     project_id: str = Field(..., min_length=1)
     created_at: str = Field(..., min_length=1)
     platform_mode: PlatformMode = Field(default=PlatformMode.SHOPEE)
+    workflow_mode: WorkflowMode = Field(default=WorkflowMode.STORYBOARD_FIRST)
     duration_preset: str = Field(default="25-30 detik (5 scene)")
     persona: str = Field(default=PersonaStyle.SANTAI.value)
     talent_preset_name: str = Field(default="Fokus Produk / B-Roll (Wajah & Suara di CapCut)")

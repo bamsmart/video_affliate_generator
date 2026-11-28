@@ -12,7 +12,7 @@ from src.compliance import ComplianceReport, audit_blueprint
 from src.config import get_gemini_model_override
 from src.exporter import save_blueprint_artifacts
 from src.history_store import append_product_hook, load_product_hooks
-from src.image_prep import save_clean_ingredient_image
+from src.image_prep import save_clean_ingredient_image, save_product_authority_image
 from src.knowledge_enricher import KnowledgeContext, gather_product_knowledge_context
 from src.llm_client import (
     GeminiClient,
@@ -32,6 +32,7 @@ from src.schemas import (
     RegeneratedHookPayload,
     SavedBlueprintRecord,
     TalentSavedProfile,
+    WorkflowMode,
 )
 
 
@@ -147,6 +148,7 @@ def generate_blueprint_service(
     auto_web_enrich: bool = True,
     variation_index: int = 0,
     existing_project_dir: Path | None = None,
+    workflow_mode: WorkflowMode = WorkflowMode.STORYBOARD_FIRST,
 ) -> tuple[SavedBlueprintRecord, ComplianceReport, Path, dict[str, Path], list[str]]:
     """Run 1-click blueprint generation enriched with Website/Spec Product Knowledge."""
     scene_count = _resolve_scene_count(duration_preset)
@@ -195,6 +197,7 @@ def generate_blueprint_service(
             previous_hooks=combined_hooks,
             platform_mode=platform_mode,
             knowledge_context_text=k_ctx.combined_text,
+            workflow_mode=workflow_mode,
         )
         raw_bp, used_model, fallback_reason = _call_structured_llm(
             messages=messages,
@@ -227,8 +230,8 @@ def generate_blueprint_service(
 
     cropped_path_str = ""
     if product_images_bytes:
-        clean_img_path, _ = save_clean_ingredient_image(
-            product_images_bytes[0],
+        clean_img_path, _ = save_product_authority_image(
+            product_images_bytes[:4],
             output_dir=proj_dir / "input",
         )
         cropped_path_str = str(clean_img_path)
@@ -237,6 +240,7 @@ def generate_blueprint_service(
         project_id=proj_dir.name,
         created_at=datetime.now().isoformat(timespec="seconds"),
         platform_mode=platform_mode,
+        workflow_mode=workflow_mode,
         duration_preset=duration_preset,
         persona=profile.persona.value,
         talent_preset_name=profile.talent_name,

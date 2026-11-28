@@ -1,10 +1,13 @@
-"""Lightweight text-only preference store for Visual Character & Speaking Persona (zero media upload)."""
+"""Preference preset & persistent Avatar photo store (`talent_presets.json` + optional `avatar_photo.jpg`)."""
 
 from __future__ import annotations
 
+import io
 import re
 from datetime import datetime
 from pathlib import Path
+
+from PIL import Image, ImageOps
 
 from src.schemas import (
     LocationLockMode,
@@ -16,6 +19,38 @@ from src.schemas import (
 
 LEGACY_PROFILE_FILENAME = "talent_profile.json"
 PRESETS_FILENAME = "talent_presets.json"
+AVATAR_PHOTO_FILENAME = "avatar_photo.jpg"
+
+
+def get_saved_avatar_photo_path(profile_dir: str | Path = "profile") -> Path | None:
+    """Return saved persistent avatar photo path if present on disk."""
+    path = Path(profile_dir) / AVATAR_PHOTO_FILENAME
+    return path if path.is_file() else None
+
+
+def save_avatar_photo(
+    image_bytes: bytes,
+    profile_dir: str | Path = "profile",
+    max_side: int = 1600,
+) -> Path:
+    """Normalize EXIF orientation, convert to JPEG, and persist user avatar photo."""
+    p_dir = Path(profile_dir)
+    p_dir.mkdir(parents=True, exist_ok=True)
+    out_path = p_dir / AVATAR_PHOTO_FILENAME
+    with Image.open(io.BytesIO(image_bytes)) as im:
+        im = ImageOps.exif_transpose(im).convert("RGB")
+        if max(im.width, im.height) > max_side:
+            im.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
+        buf = io.BytesIO()
+        im.save(buf, format="JPEG", quality=92, optimize=True)
+    out_path.write_bytes(buf.getvalue())
+    return out_path
+
+
+def delete_avatar_photo(profile_dir: str | Path = "profile") -> None:
+    """Delete persisted avatar photo if it exists."""
+    path = Path(profile_dir) / AVATAR_PHOTO_FILENAME
+    path.unlink(missing_ok=True)
 
 
 def _default_presets() -> list[TalentSavedProfile]:

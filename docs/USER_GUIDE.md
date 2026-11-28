@@ -1,133 +1,92 @@
 🌐 **English** | [Bahasa Indonesia](USER_GUIDE.id.md) · 🏠 [Back to README](../README.md)
 
-# Commercial User Guide — 100% Mobile Production Playbook
+# Commercial User Guide — Laptop Studio & Mobile Playbook (`1× Copy-Paste`)
 
-Welcome to **Affiliate AI Video Director**—a commercial-grade creative workflow engineered for **Shopee Video & TikTok Shop** affiliates using the **`App → Google Flow → CapCut`** pipeline.
+Welcome to **Affiliate AI Video Director**—a streamlined **3-step, `1× Copy-Paste`** affiliate video studio engineered for **Shopee Video & TikTok Shop Indonesia** (`App → Google Flow → CapCut`).
 
-The studio is built **Mobile-First**, allowing you to research products, generate anti-hallucination prompts featuring your personal **`@me`** Google Flow avatar, assemble clips in CapCut, and publish directly from your smartphone.
+Run it in **Laptop Studio (`2-Column` default)** locally or toggle **Mobile / HP (`1-Column`)** from the sidebar when deployed on Streamlit Community Cloud.
 
 ---
 
 ## Prerequisites
 
-1. **Smartphone (Android or iPhone)** with **Shopee / TikTok**, mobile browser access to **Google Flow**, and **CapCut**.
-2. **Personal Avatar in Google Flow** created once (invoked automatically by typing **`@me`**).
+1. **Product Photos & One-Time Personal Avatar Photo** (saved automatically in the app once uploaded).
+2. **Google Flow Account** (`https://labs.google/fx/tools/flow`) — also works seamlessly on smartphone browsers.
 3. **Free AI API Keys** (at least one, ideally both for automatic failover):
    - **Google Gemini API Key (Primary — Free):** https://aistudio.google.com/apikey
    - **OpenRouter API Key (Automatic Fallback — Free):** https://openrouter.ai/keys *(uses `:free` models by default)*.
 
 ---
 
-## 1. One-Time Initial Setup (5 Minutes)
+## 1. Initial Setup (Once Only)
 
-### 1.1 Deploy Free to Streamlit Community Cloud
-Run the studio from anywhere on your phone without keeping a laptop powered on:
-
+### 1.1 Deploy Free to Streamlit Community Cloud (Mobile & Anywhere Access)
 1. **Push Code to a Private GitHub Repository:**
    ```bash
    cd path/to/video_affliate_generator
-   git init
    git add .
-   git commit -m "Initial commercial affiliate studio"
-   git branch -M main
-   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
+   git commit -m "Update affiliate video director studio"
    git push -u origin main
    ```
-   > **Security Guarantee:** [`.gitignore`](../.gitignore) automatically excludes `.env`, `.streamlit/secrets.toml`, `.venv/`, `projects/`, and `profile/` so your private API keys and local workspace files are never pushed to GitHub.
-
-2. **Deploy & Configure Cloud Secrets:**
-   - Sign in at [share.streamlit.io](https://share.streamlit.io) with your GitHub account.
-   - Click **Create app** → select your repository, branch `main`, and main file path `app.py`.
-   - Open **Advanced settings...** → select Python `3.12` → paste your TOML secrets *(on macOS, run `.venv/bin/python scripts/copy_secrets_for_cloud.py` to convert `.env` into valid TOML and copy it directly to your clipboard)*:
+   > **Security Guarantee:** [`.gitignore`](../.gitignore) automatically excludes `.env`, `.streamlit/secrets.toml`, `.venv/`, `projects/`, and `profile/` (`avatar_photo.jpg`, presets) so your private keys and personal photos never leave your local workspace.
+2. **Configure Secrets at [share.streamlit.io](https://share.streamlit.io):**
+   - Select your repo, branch `main`, main file `app.py`, and Python `3.12`.
+   - Under **Settings → Secrets**, paste TOML *(on macOS, run `.venv/bin/python scripts/copy_secrets_for_cloud.py` to copy `.env` as TOML)*:
      ```toml
      GEMINI_API_KEY = "AIzaSy..."
      GEMINI_MODEL = "gemini-2.5-flash"
      OPENROUTER_API_KEY = "sk-or-v1-..."
-
-     # Recommended: protect your API quota behind a personal login PIN
      APP_PIN = "123456"
      ```
-   - Click **Deploy!** and wait ~60 seconds.
+3. **Install as a Mobile Shortcut (Optional):** Add your deployed app URL to Android/iOS Home Screen and switch **Tata letak layar** in sidebar settings to **Mobile / HP (1-Kolom)**.
 
-3. **Install as a Mobile Home-Screen App:**
-   - Open your `https://your-app.streamlit.app` URL on your phone.
-   - **Android (Chrome):** Tap **`⋮`** → **Add to Home screen / Install app**.
-   - **iPhone (Safari):** Tap **Share** → **Add to Home Screen**.
-
-### 1.2 Local Laptop & Home Wi-Fi Alternative
-- **Local laptop only:**
-  ```bash
-  .venv/bin/streamlit run app.py
-  ```
-- **Phone over the same home Wi-Fi (no Cloud deploy required):**
-  ```bash
-  .venv/bin/streamlit run app.py --server.address 0.0.0.0
-  ```
-  Open the printed **`Network URL`** (`http://192.168.x.x:8501`) in your phone browser.
-
-> **Stopping the Local Server:** Press **`Control + C`** in the running terminal window. If the terminal froze or was closed, run `pkill -9 -f streamlit` and close any open `localhost:8501` browser tabs.
+### 1.2 Run Locally on Laptop (Default)
+```bash
+.venv/bin/streamlit run app.py
+```
+Stop anytime with **`Control + C`** (or `pkill -9 -f streamlit` if a background session remains).
 
 ---
 
-## 2. Daily Mobile Production SOP (5 Stages)
+## 2. Daily Production SOP (3 Foolproof Steps)
 
-### Stage 1: Prepare Complete Product References
-1. **Capture an Uncropped Product Image (Anti-Hallucination Rule #1):**
-   - Save the product gallery photo or take a clean mobile screenshot.
-   - **Golden Rule:** Ensure the **entire bottom of the product (e.g., all chair legs, rubber feet, or bottle base)** is clearly visible and uncropped. Cropped legs cause Google Flow to hallucinate mismatched structures.
-2. *(Recommended Competitive Edge)* **Gather Store Specs or Official Brand URLs:**
-   - Expand **Tambah detail spek / link website produk** and paste the brand URL or copy-pasted marketplace specifications (materials, load ratings, ingredients, dimensions). This gives your voiceover factual depth that outperforms generic affiliate videos.
+### Stage 1: Upload Product + Avatar Photo (10 Seconds)
+1. **Upload Product Photo(s)** (`Foto produk` — upload 1 uncropped photo **or 2–4 angles** [front, 3/4, side, back] to auto-stitch into a single **Product Turnaround Sheet** for Slot 1, up to 10 MB each). Ensure **bottom legs/base are completely visible**.
+2. **Upload Your Avatar Photo (`Foto avatar Anda`)** once: it stays saved automatically for Slot 2 across all future products.
+3. *(Optional)* Open **Pengaturan tambahan (opsional — boleh langsung lewati)** to customize persona, `3`/`5`/`7` scene depth, target platform (`Shopee Video`, `TikTok Shop`, `Shopee + TikTok`), or paste store specs / product URL for deeper facts.
+4. Click **`Buat prompt Google Flow`**.
 
-### Stage 2: Generate the Commercial Blueprint
-1. Open your studio app from your phone home screen (enter `APP_PIN` if enabled).
-2. Upload **1–4 product images** (up to 10 MB each).
-3. Select **Subjek / Avatar Google Flow**:
-   - **`Avatar Saya (Pria / Wanita / Hijab Indonesia)`:** **`@me`** is pre-filled automatically. Optionally add brief traits such as `@me, berkacamata, kaos hitam`.
-   - **`Tanpa Wajah (Fokus Produk)`:** Generates macro B-roll showing Indonesian hands and product craftsmanship without faces.
-4. Pick your **duration preset** (`3`, `5`, or `7 scene deep`) and **target CTA platform** (`Shopee Video`, `TikTok Shop`, or `Shopee + TikTok`).
-5. Tap **Generate blueprint & product knowledge**.
-6. If any compliance warning appears, tap **Perbaiki klaim otomatis ke bahasa aman** before proceeding.
+### Stage 2: Execute in Google Flow (`1× Copy-Paste`, Default `15s` Talking Avatar)
+1. In **Siap pakai! 3 langkah di Google Flow**, verify the selected duration:
+   - **`15 detik utuh` (Default):** Speaks the full emotional story (*Hook → Solution → Before vs After + CTA*) smoothly across **15 seconds with zero looping**.
+   - **`8 detik`:** Use when generating shorter **5–8s** single-scene Veo clips.
+2. Click **`Download foto produk (.jpg)`** (or **`Download Turnaround Sheet produk (.jpg)`** when using 2–4 angles) and download your **`avatar_photo.jpg`** if needed.
+3. Click **`Buka Google Flow`** → create a new project → select **Videos (`9:16`)** → set duration to **`15s`** (or `5-8s`) → tap **`+`** and attach both **Product Photo / Turnaround Sheet + Avatar Photo**.
+4. Click the **Copy** icon on **`Prompt Google Flow — Suara, Script & Avatar`** → **Paste** → **Generate**. Google Flow generates the video complete with your Avatar face, lip-sync, and Indonesian spoken voiceover!
 
-### Stage 3: Execute in Google Flow (`9:16`)
-1. On **Step 1 — Setup Google Flow**, inspect the preview of **`ingredient_produk_bersih.jpg`**:
-   - Standard `1:1`, `3:4`, and `9:16` photos are kept intact; ultra-tall phone screenshots are conservatively trimmed.
-   - If the lower edges look close, open **Kaki/bawah produk terpotong? Atur batas crop di sini**, set *Potong bar bawah* to **`0%`**, tap **Terapkan ulang crop**, and tap **Simpan foto produk bersih ke HP**.
-2. Open **Google Flow** on your phone (`9:16` aspect ratio) and attach the clean product photo under **Ingredients / Asset**.
-3. Run **Step 2 through Step N+1** sequentially:
-   - Tap the **Copy** icon on each `Prompt Google Flow` box.
-   - Match the Google Flow Scene Builder action badge:
-     - **`New Scene`** (Scene 1): Paste prompt while ensuring your **Product Ingredient** is selected. Standalone **`@me`** in the prompt automatically invokes your personal Indonesian avatar.
-     - **`Extend`**: Extend smoothly from the previous clip's final frame with zero camera cut.
-     - **`Jump to`**: Cut to a material/feature angle while keeping your **Product Ingredient** active so geometry stays locked 1:1.
-   - Save every generated clip to your phone gallery.
+> **Continuing to Scene 2 without Product Drift:** Inside Google Flow, either click **`Extend`** at the end of Clip 1, OR **Pause** Clip 1 at its final frame → hover and click **`Save frame`** → set that saved frame as your **`Start frame`** for Scene 2. Also explore **Mode pro** below for **Storyboard Contact Sheet Grid (`Nano Banana`)**, **Auto-Splitter (`keyframes.zip`)**, manual **Crop Sliders**, and **Deep Product Knowledge**.
 
-### Stage 4: Mobile Finishing in CapCut
-1. Import all Google Flow clips into a new **`9:16`** CapCut timeline.
-2. Add Indonesian Voiceover:
-   - **Best Authenticity:** Record your own voice reading **Full VO script**, or use your CapCut avatar/voice.
-   - **Zero-Effort Automated Option:** Under the final step card, tap **Buat audio MP3 + SRT sinkron otomatis** to download `vo_capcut.mp3` and `vo_capcut.srt`, or download **`Download subtitle CapCut (.srt)`** to pair with manual recording.
-3. Place scene **On-Screen Headlines** in the upper-middle safe zone (clear of top status chrome and bottom basket/caption overlays).
-4. Add subtle BGM at **8%–10% volume** so product knowledge details remain crisp.
+### Stage 3: Voice Backup & CapCut Finishing (Optional)
+- **Built-in Default:** Google Flow already includes Indonesian voiceover directly from your single prompt.
+- **CapCut Audio Backup:** Right below the prompt box, your full **Script suara (VO)** is visible along with **`Buat audio MP3 + SRT sinkron suara Indonesia`** (`vo_capcut.mp3` + `.srt`) in case you want clean CapCut dubbing/subtitles.
 
-### Stage 5: Publish & Maximize Conversion
-1. Upload to **Shopee Video** or **TikTok Shop** with the generated platform **Caption & Hashtags**.
-2. Attach the product to **Keranjang Oranye / Keranjang Kuning**.
-3. **Mandatory Platform Compliance:** Enable the **"AI-generated content / Konten Buatan AI"** toggle before publishing.
-4. **Conversion Multiplier:** Immediately paste and **Pin** the generated **`Pinned comment FAQ`** as your first comment to answer buyer objections on the spot.
+### Stage 4: Publish & Maximize Conversion
+1. Copy platform **Caption & Hashtags** and **Pinned Comment FAQ** from the **Caption Shopee/TikTok, Pinned Comment FAQ & tips CapCut** expander.
+2. Attach **Keranjang Oranye** (Shopee) or **Keranjang Kuning** (TikTok).
+3. **Mandatory Compliance:** Enable the **"Konten Buatan AI / AI-generated content"** toggle when publishing, then **Pin** the generated FAQ as your first comment.
 
 ---
 
-## 3. Format Matrix & Anti-Spam Scaling
+## 3. Competitive Narrative Arc & Format Matrix
 
-| Content Goal | Recommended Duration | Structure Highlights |
+Every generated script follows the **Emotional Value-Add Storyboard** (`ugc-director-prompt-studio`) so your review beats generic affiliate titles:
+**Touch Emotion & Real Pain (`Painful Nyata`) → What It Solves (`Apa yang Di-Solve`) → Safe `Before vs After` → `Objection Killer` → Platform CTA**.
+
+| Content Goal | App Setting | Structure Highlights |
 | :--- | :--- | :--- |
-| **Impulse & fast trend buys** | `15 detik (3 scene)` | Sharp Hook → Core Spec + Demo → Fast CTA |
-| **Daily lifestyle & fashion** | `25-30 detik (5 scene)` | Hook → Pain Point → Spec & Demo → Objection Killer → CTA |
-| **High-ticket, outdoor gear, or skincare** | `40-45 detik (7 scene deep)` | Hook → Problem → Macro Material Audit → Mechanism Demo → Objection Killer → Pro Tip & Value → CTA |
-
-**Scaling Without Duplicate Flags:**
-- **Tap `Regenerate hook`:** Swaps only **Scene 1** while seamlessly bridging into Scene 2—ideal for A/B testing scroll-stop hooks.
-- **Tap `Variasi baru (anti-spam)`:** Rebuilds the full angle while cross-checking persistent `hook_history.json` so hooks never repeat prior uploads.
+| **Fast 15s single-clip conversion** | `15 detik utuh` + `3 scene` *(Default)* | Hook Emosi & Painful → Apa yang Di-Solve → Before vs After + CTA in one 15s pass |
+| **Multi-clip lifestyle review** | `8 detik` + `5 scene` | Emotional Hook → Before Context → Material Solution → After & Objection Killer → CTA |
+| **Deep high-ticket breakdown** | `8 detik` + `7 scene deep` + Pro Grid | Full multi-angle Storyboard Grid → Auto-Split → 7-scene macro & ergonomic proof |
 
 ---
 
@@ -135,8 +94,7 @@ Run the studio from anywhere on your phone without keeping a laptop powered on:
 
 | Symptom | Root Cause | Resolution |
 | :--- | :--- | :--- |
-| **`API key belum terdeteksi` on Cloud** | `.env` is intentionally excluded from Git; Cloud Secrets not configured yet | Open **share.streamlit.io → Settings → Secrets**, paste keys inside `"..."` quotes, and click **Save** |
-| **Product legs or frame mutated in Flow** | Lower edge cropped in Ingredient photo, or Product Ingredient unselected on `Jump to` | Reset bottom crop slider to `0%`, re-upload uncropped product photo, and keep Product Ingredient active on every scene |
-| **Generated person looks Western or wrong** | Flow avatar mention missing `@me` or wrapped in parentheses | Use current app build—every prompt enforces standalone **`@me`** plus Nusantara facial identity locks |
-| **Store URL shows bot-restriction note** | E-commerce site blocks automated crawlers or requires login | Expected behavior—copy-paste the store specs directly into the app's specification text box |
-| **Local laptop slows down or hangs** | Background Streamlit sessions left running | Stop with `Ctrl + C` or `pkill -9 -f streamlit`, and run daily workflows on **Streamlit Cloud** instead |
+| **Video repeats/loops at 15 seconds in Flow** | Using a short single-scene prompt with Flow set to `15s` | Keep **`15 detik utuh` (Default)** selected in the app so the full 3-scene script fills all 15 seconds continuously |
+| **`API key belum terdeteksi` on Cloud** | `.env` is gitignored; Cloud Secrets not set yet | Open **share.streamlit.io → Settings → Secrets**, paste keys in `"..."` quotes, and click **Save** |
+| **Product legs/base mutated in Flow** | Lower edge missing from uploaded photo, or using `Direct` on complex shapes | Re-upload uncropped product photo (or set bottom crop slider to `0%`), or run **Mode Pro → Storyboard Grid + Auto-Split** |
+| **Avatar looks wrong or not synced** | Avatar photo not attached in Google Flow `+` Ingredients | Attach both **Foto Produk** and **Foto Avatar (`avatar_photo.jpg`)** inside Google Flow before generating |
